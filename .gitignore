@@ -1,0 +1,8 @@
+__pycache__/
+jup_scripts/
+.vscode/
+checkpoints/
+scripts/
+data/
+test/
+.idea/
