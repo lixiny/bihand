@@ -9,8 +9,8 @@ Lixin Yang, Jiasen Li, Wenqiang Xu, Yiqun Diao, Cewu Lu
 
 ## Get the code
 ```
-git clone --recursive https://github.com/lixiny/BiHand-test.git
-cd BiHand-test
+git clone --recursive https://github.com/lixiny/bihand.git
+cd bihand
 ```
 ## Install Requirements 
 Install the dependencies listed in `environment.yml` through conda:
@@ -105,7 +105,7 @@ BiHand-test/
 ## Launch Demo
 
 - First, add this into current bash or ~/.bashrc  
-`export PYTHONPATH=/path/to/BiHand-test:$PYTHONPATH` 
+`export PYTHONPATH=/path/to/bihand:$PYTHONPATH` 
 
 - to test on RHD dataset:   
 ```
