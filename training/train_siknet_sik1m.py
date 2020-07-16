@@ -25,12 +25,13 @@ from progress.progress.bar import Bar
 from bihand.utils.eval.evalutils import AverageMeter
 from bihand.utils.eval.zimeval import EvalUtil
 
+
 def print_args(args):
     opts = vars(args)
-    cprint("{:>30}  Options  {}".format("="*15, "="*15), 'yellow')
+    cprint("{:>30}  Options  {}".format("=" * 15, "=" * 15), 'yellow')
     for k, v in sorted(opts.items()):
         print("{:>30}  :  {}".format(k, v))
-    cprint("{:>30}  Options  {}".format("="*15, "="*15), 'yellow')
+    cprint("{:>30}  Options  {}".format("=" * 15, "=" * 15), 'yellow')
 
 
 def main(args):
@@ -41,20 +42,20 @@ def main(args):
     model = models.SIKNet()
     model = model.to(device)
     criterion = losses.SIKLoss(
-        lambda_quat = 1.0,  # only perform quaternion loss
-        lambda_joint = 0.0,
-        lambda_shape = 0.0
+        lambda_quat=1.0,  # only perform quaternion loss
+        lambda_joint=0.0,
+        lambda_shape=0.0
     )
 
     optimizer = torch.optim.Adam(
         [
             {
                 'params': model.invk_layers.parameters(),
-                'initial_lr':args.learning_rate
+                'initial_lr': args.learning_rate
             },
             {
                 'params': model.shapereg_layers.parameters(),
-                'initial_lr':args.learning_rate
+                'initial_lr': args.learning_rate
             },
 
         ],
@@ -67,7 +68,7 @@ def main(args):
     )
 
     val_dataset = datasets.SIK1M(
-         data_root=args.data_root,
+        data_root=args.data_root,
         data_split="test"
     )
 
@@ -99,7 +100,7 @@ def main(args):
 
     if args.evaluate:
         validate(val_loader, model, criterion, args=args)
-        cprint('Eval All Done', 'yellow',attrs=['bold'])
+        cprint('Eval All Done', 'yellow', attrs=['bold'])
         return 0
 
     model = torch.nn.DataParallel(model)
@@ -109,12 +110,12 @@ def main(args):
         last_epoch=args.start_epoch
     )
 
-    for epoch in range(args.start_epoch, args.epochs+1):
+    for epoch in range(args.start_epoch, args.epochs + 1):
         print('\nEpoch: %d' % (epoch + 1))
         for i in range(len(optimizer.param_groups)):
-            print('group %d lr:'%i, optimizer.param_groups[i]['lr'])
+            print('group %d lr:' % i, optimizer.param_groups[i]['lr'])
         #############  trian for on epoch  ###############
-        train (
+        train(
             train_loader,
             model,
             criterion,
@@ -134,13 +135,14 @@ def main(args):
         )
         validate(val_loader, model, criterion, args)
         scheduler.step()
-    cprint('All Done', 'yellow',attrs=['bold'])
-    return 0 # end of main
+    cprint('All Done', 'yellow', attrs=['bold'])
+    return 0  # end of main
+
 
 def validate(val_loader, model, criterion, args, stop=-1):
-    am_quat_norm   = AverageMeter()
+    am_quat_norm = AverageMeter()
     am_quat_l2 = AverageMeter()
-    am_quat_cos  = AverageMeter()
+    am_quat_cos = AverageMeter()
     evaluator = EvalUtil()
     model.eval()
     total_quat = []
@@ -176,7 +178,7 @@ def validate(val_loader, model, criterion, args, stop=-1):
             pck30 = evaluator.get_pck_all(30)
             pck40 = evaluator.get_pck_all(40)
 
-            bar.suffix  = (
+            bar.suffix = (
                 '({batch}/{size}) '
                 'lN: {lossN:.5f} | '
                 'lL2: {lossL2:.5f} | '
@@ -185,14 +187,14 @@ def validate(val_loader, model, criterion, args, stop=-1):
                 'pck30avg: {pck30:.3f} | '
                 'pck40avg: {pck40:.3f} | '
             ).format(
-                batch = i + 1,
-                size = len(val_loader),
-                pck20 = pck20,
-                pck30 = pck30,
-                pck40 = pck40,
-                lossN = am_quat_norm.avg,
-                lossL2 = am_quat_l2.avg,
-                lossC = am_quat_cos.avg,
+                batch=i + 1,
+                size=len(val_loader),
+                pck20=pck20,
+                pck30=pck30,
+                pck40=pck40,
+                lossN=am_quat_norm.avg,
+                lossL2=am_quat_l2.avg,
+                lossC=am_quat_cos.avg,
             )
 
             bar.next()
@@ -202,11 +204,11 @@ def validate(val_loader, model, criterion, args, stop=-1):
 
 
 def train(train_loader, model, criterion, optimizer, args):
-    batch_time   = AverageMeter()
-    data_time    = AverageMeter()
-    am_quat_norm   = AverageMeter()
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    am_quat_norm = AverageMeter()
     am_quat_l2 = AverageMeter()
-    am_quat_cos  = AverageMeter()
+    am_quat_cos = AverageMeter()
     am_joint = AverageMeter()
     am_kin_len = AverageMeter()
 
@@ -236,7 +238,7 @@ def train(train_loader, model, criterion, optimizer, args):
         ''' progress '''
         batch_time.update(time.time() - last)
         last = time.time()
-        bar.suffix  = (
+        bar.suffix = (
             '({batch}/{size}) '
             'd: {data:.2f}s | '
             'b: {bt:.2f}s | '
@@ -248,35 +250,36 @@ def train(train_loader, model, criterion, optimizer, args):
             'lL2: {lossL2:.5f} | '
             'lC: {lossC:.3f} |'
         ).format(
-            batch = i+1,
-            size  = len(train_loader),
-            data  = data_time.avg,
-            bt    = batch_time.avg,
-            total = bar.elapsed_td,
-            eta   = bar.eta_td,
-            lossJ = am_joint.avg,
-            lossK = am_kin_len.avg,
-            lossN = am_quat_norm.avg,
-            lossL2 = am_quat_l2.avg,
-            lossC = am_quat_cos.avg,
+            batch=i + 1,
+            size=len(train_loader),
+            data=data_time.avg,
+            bt=batch_time.avg,
+            total=bar.elapsed_td,
+            eta=bar.eta_td,
+            lossJ=am_joint.avg,
+            lossK=am_kin_len.avg,
+            lossN=am_quat_norm.avg,
+            lossL2=am_quat_l2.avg,
+            lossC=am_quat_cos.avg,
         )
         bar.next()
     bar.finish()
 
+
 def one_forward_pass(metas, model, criterion, args, train=True):
     ''' prepare targets '''
-    jointRS     = metas['jointRS'].to(device, non_blocking=True)
-    kin_chain   = metas['kin_chain'].to(device, non_blocking=True)
-    kin_len     = metas['kin_len'].to(device, non_blocking=True)
-    joint_bone  = metas['joint_bone'].to(device, non_blocking=True)
-    quat        = metas['quat'].to(device, non_blocking=True)
+    jointRS = metas['jointRS'].to(device, non_blocking=True)
+    kin_chain = metas['kin_chain'].to(device, non_blocking=True)
+    kin_len = metas['kin_len'].to(device, non_blocking=True)
+    joint_bone = metas['joint_bone'].to(device, non_blocking=True)
+    quat = metas['quat'].to(device, non_blocking=True)
     targets = {
-        'batch_size':jointRS.shape[0],
-        'quat':quat,
-        'kin_chain':kin_chain,
-        'jointRS':jointRS,
-        'kin_len':kin_len,
-        'joint_bone':joint_bone
+        'batch_size': jointRS.shape[0],
+        'quat': quat,
+        'kin_chain': kin_chain,
+        'jointRS': jointRS,
+        'kin_len': kin_len,
+        'joint_bone': joint_bone
     }
     ''' ----------------  Forward Pass  ---------------- '''
     results = model(jointRS, kin_chain)
@@ -291,13 +294,14 @@ def one_forward_pass(metas, model, criterion, args, train=True):
     total_loss, losses = criterion.compute_loss(results, targets)
     return results, targets, total_loss, losses
 
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='PyTorch Train 3d-Hand-Circle')
+    parser = argparse.ArgumentParser(description='PyTorch Train SIKNet on SIK1M Synthetic Dataset')
     # Miscs
     parser.add_argument(
         '-ckp',
         '--checkpoint',
-        default='/home/sirius/Documents/BiHand/checkpoints',
+        default='checkpoints',
         type=str,
         metavar='PATH',
         help='path to save checkpoint (default: checkpoint)'
@@ -307,7 +311,7 @@ if __name__ == '__main__':
         '-dr',
         '--data_root',
         type=str,
-        default='/media/sirius/Lixin213G/Dataset',
+        default='data',
         help='dataset root directory'
     )
 
@@ -362,7 +366,7 @@ if __name__ == '__main__':
         help='manual epoch number (useful on restarts)'
     )
     parser.add_argument(
-        '-b','--train_batch',
+        '-b', '--train_batch',
         default=64,
         type=int,
         metavar='N',

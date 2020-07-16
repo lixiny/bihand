@@ -11,14 +11,16 @@ from bihand.losses.sikloss import SIKLoss
 
 sik1m_inst = 0
 
+
 class _SIK1M(data.Dataset):
     """
     The Loader for joints so3 and quat
     """
+
     def __init__(
-        self,
-        data_root="/disk1/data",
-        data_source=None
+            self,
+            data_root="/disk1/data",
+            data_source=None
     ):
         if data_source is None:
             data_source = ["sik-fh", 'sik-1m']
@@ -31,9 +33,9 @@ class _SIK1M(data.Dataset):
         self.jointR = []
         self.quat = []
         self.ref_bone_link = (0, 9)  # mid mcp
-        self.joint_root_idx = 9 # root
+        self.joint_root_idx = 9  # root
 
-        for sik_sub in data_source: # sik-fh, sik-1m
+        for sik_sub in data_source:  # sik-fh, sik-1m
             pkl_path = os.path.join(data_path, '%s.pkl' % sik_sub)
             with open(pkl_path, 'rb') as fid:
                 data = dict(pickle.load(fid))
@@ -46,7 +48,7 @@ class _SIK1M(data.Dataset):
             cprint("SIK1M with source: {} init, total {}"
                    .format(sik_sub, jointR.shape[0]),
                    'magenta', attrs=['bold']
-            )
+                   )
 
         self.jointR = np.concatenate(self.jointR, axis=0)
         self.quat = np.concatenate(self.quat, axis=0)
@@ -68,7 +70,7 @@ class _SIK1M(data.Dataset):
             jointRS[i] - jointRS[cfg.SNAP_PARENT[i]]
             for i in range(21)
         ]
-        kin_chain = np.array(kin_chain[1:]) # id 0's parent is itself
+        kin_chain = np.array(kin_chain[1:])  # id 0's parent is itself
         kin_len = np.linalg.norm(
             kin_chain, ord=2, axis=-1, keepdims=True
         )
@@ -81,20 +83,21 @@ class _SIK1M(data.Dataset):
         quat = torch.from_numpy(quat).float()
 
         metas = {
-            'jointRS':jointRS,
-            'joint_bone':joint_bone,
-            'kin_chain':kin_chain,
-            'kin_len':kin_len,
-            'quat':quat
+            'jointRS': jointRS,
+            'joint_bone': joint_bone,
+            'kin_chain': kin_chain,
+            'kin_len': kin_len,
+            'quat': quat
         }
         return metas
 
+
 class SIK1M(data.Dataset):
     def __init__(
-        self,
-        data_split = "train",
-        data_root = "/disk1/data",
-        split_ratio = 0.8
+            self,
+            data_split="train",
+            data_root="/disk1/data",
+            split_ratio=0.8
     ):
         global sik1m_inst
         if not sik1m_inst:
@@ -124,7 +127,7 @@ class SIK1M(data.Dataset):
 def main():
     sik1m_train = SIK1M(
         data_split="train",
-        data_root = "/media/sirius/Lixin213G/Dataset"
+        data_root="/media/sirius/Lixin213G/Dataset"
     )
     sik1m_test = SIK1M(
         data_split="test"
@@ -137,6 +140,6 @@ def main():
     quat = metas['quat']
     so3 = quatutils.quaternion_to_angle_axis(quat)
 
+
 if __name__ == "__main__":
     main()
-

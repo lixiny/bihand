@@ -37,6 +37,7 @@ stb_joint_name2id = {w: i for i, w in enumerate(cfg.stb_joints)}
 
 stb_to_snap_id = [snap_joint_name2id[joint_name] for joint_name in cfg.stb_joints]
 
+
 def sk_rot_mx(rot_vec):
     """
     use Rodrigues' rotation formula to transform the rotation vector into rotation matrix
@@ -69,6 +70,7 @@ def sk_rot_mx(rot_vec):
         ]
     )
 
+
 def sk_xyz_depth2color(depth_xyz, trans_vec, rot_mx):
     """
     in the STB dataset: 'rotation and translation vector can transform the coordinates
@@ -83,17 +85,18 @@ def sk_xyz_depth2color(depth_xyz, trans_vec, rot_mx):
     color_xyz = depth_xyz - np.tile(trans_vec, [depth_xyz.shape[0], depth_xyz.shape[1], 1])
     return color_xyz.dot(rot_mx)
 
-def stb_palm2wrist(joint_xyz):
-    root = snap_joint_name2id['loc_bn_palm_L'] # 0
 
-    index = snap_joint_name2id['loc_bn_index_L_01'] # 5
+def stb_palm2wrist(joint_xyz):
+    root = snap_joint_name2id['loc_bn_palm_L']  # 0
+
+    index = snap_joint_name2id['loc_bn_index_L_01']  # 5
     mid = snap_joint_name2id['loc_bn_mid_L_01']  # 9
     ring = snap_joint_name2id['loc_bn_ring_L_01']  # 13
-    pinky = snap_joint_name2id['loc_bn_pinky_L_01'] #17
+    pinky = snap_joint_name2id['loc_bn_pinky_L_01']  # 17
 
     def _new_root(joint_xyz, id, root_id):
-        return joint_xyz[:, id, :] +\
-            2.25 * (joint_xyz[:, root_id, :] - joint_xyz[:, id, :])  # N x K x 3
+        return joint_xyz[:, id, :] + \
+               2.25 * (joint_xyz[:, root_id, :] - joint_xyz[:, id, :])  # N x K x 3
 
     joint_xyz[:, root, :] = \
         _new_root(joint_xyz, index, root) + \
@@ -104,41 +107,43 @@ def stb_palm2wrist(joint_xyz):
 
     return joint_xyz
 
+
 def _stb_palm2wrist(joint_xyz):
     root_id = snap_joint_name2id['loc_bn_palm_L']
     mid_root_id = snap_joint_name2id['loc_bn_mid_L_01']
-    joint_xyz[:, root_id, :] =\
+    joint_xyz[:, root_id, :] = \
         joint_xyz[:, mid_root_id, :] + \
         2.2 * (joint_xyz[:, root_id, :] - joint_xyz[:, mid_root_id, :])  # N x K x 3
     return joint_xyz
 
+
 class STBDataset(torch.utils.data.Dataset):
     def __init__(
-        self,
-        data_root,
-        data_split='train',
-        hand_side='right',
-        njoints=21,
-        use_cache=True,
+            self,
+            data_root,
+            data_split='train',
+            hand_side='right',
+            njoints=21,
+            use_cache=True,
     ):
         if not os.path.exists(data_root):
             raise ValueError("data_root: %s not exist" % data_root)
-        self.name        = 'stb'
-        self.data_split  = data_split
+        self.name = 'stb'
+        self.data_split = data_split
         self.hand_side = hand_side
-        self.img_paths   = []
-        self.dep_paths   = []
-        self.joints      = []
-        self.kp2ds       = []
-        self.centers     = []
-        self.scales      = []
-        self.njoints     = njoints # total 21 hand parts
+        self.img_paths = []
+        self.dep_paths = []
+        self.joints = []
+        self.kp2ds = []
+        self.centers = []
+        self.scales = []
+        self.njoints = njoints  # total 21 hand parts
 
-        self.root_id     = snap_joint_name2id['loc_bn_palm_L']
-        self.mid_mcp_id  = snap_joint_name2id['loc_bn_mid_L_01']
-        ann_base         = os.path.join(data_root, "labels")
-        img_base         = os.path.join(data_root, "images")
-        sk_rot           = sk_rot_mx(sk_rot_vec)
+        self.root_id = snap_joint_name2id['loc_bn_palm_L']
+        self.mid_mcp_id = snap_joint_name2id['loc_bn_mid_L_01']
+        ann_base = os.path.join(data_root, "labels")
+        img_base = os.path.join(data_root, "images")
+        sk_rot = sk_rot_mx(sk_rot_vec)
 
         self.sk_intr = np.array([
             [sk_fx_color, 0.0, sk_tx_color],
@@ -237,8 +242,8 @@ class STBDataset(torch.utils.data.Dataset):
             assert "SK" in ann
             ''' 1. load joint '''
             rawmat = sio.loadmat(ann)
-            rawjoint = rawmat["handPara"].transpose((2,1,0)) # N x K x 3
-            num = rawjoint.shape[0] # N
+            rawjoint = rawmat["handPara"].transpose((2, 1, 0))  # N x K x 3
+            num = rawjoint.shape[0]  # N
 
             rawjoint = sk_xyz_depth2color(rawjoint, sk_trans_vec, sk_rot)
             # reorder idx
@@ -258,7 +263,7 @@ class STBDataset(torch.utils.data.Dataset):
                     imgpath, "{}_{}.png".format(depsk_prefix, idx)
                 ))
 
-        self.joints = np.concatenate(self.joints, axis = 0).astype(np.float32)  ##(30000, 21, 3)
+        self.joints = np.concatenate(self.joints, axis=0).astype(np.float32)  ##(30000, 21, 3)
 
         for i in range(len(self.img_paths)):
             joint = self.joints[i]
@@ -268,21 +273,21 @@ class STBDataset(torch.utils.data.Dataset):
             center = handutils.get_annot_center(kp2d)
             scale = handutils.get_annot_scale(kp2d)
 
-            self.kp2ds.append( kp2d[np.newaxis,:,:] )
-            self.centers.append( center[np.newaxis,:] )
-            self.scales.append( (np.atleast_1d(scale))[np.newaxis,:] )
+            self.kp2ds.append(kp2d[np.newaxis, :, :])
+            self.centers.append(center[np.newaxis, :])
+            self.scales.append((np.atleast_1d(scale))[np.newaxis, :])
 
         self.kp2ds = np.concatenate(self.kp2ds, axis=0).astype(np.float32)  # (N, 21, 2)
         self.centers = np.concatenate(self.centers, axis=0).astype(np.float32)  # (N, 2)
         self.scales = np.concatenate(self.scales, axis=0).astype(np.float32)  # (N, 1)
         if use_cache:
             full_info = {
-                "img_paths":self.img_paths,
-                "dep_paths":self.dep_paths,
-                "joints":self.joints,
-                "kp2ds":self.kp2ds,
-                "centers":self.centers,
-                "scales":self.scales,
+                "img_paths": self.img_paths,
+                "dep_paths": self.dep_paths,
+                "joints": self.joints,
+                "kp2ds": self.kp2ds,
+                "centers": self.centers,
+                "scales": self.scales,
             }
             with open(cache_path, "wb") as fid:
                 pickle.dump(full_info, fid)
@@ -306,7 +311,7 @@ class STBDataset(torch.utils.data.Dataset):
         return colored(info, 'blue', attrs=['bold'])
 
     def _is_valid(self, clr, index):
-        valid_data = isinstance(clr, (np.ndarray,PIL.Image.Image))
+        valid_data = isinstance(clr, (np.ndarray, PIL.Image.Image))
 
         if not valid_data:
             raise Exception("Encountered error processing stb[{}]".format(index))
@@ -332,7 +337,7 @@ class STBDataset(torch.utils.data.Dataset):
             valid_dep = False
 
         # prepare joint
-        joint = self.joints[index].copy()  #(21, 3)
+        joint = self.joints[index].copy()  # (21, 3)
 
         # prepare kp2d
         kp2d = self.kp2ds[index].copy()
@@ -350,9 +355,9 @@ class STBDataset(torch.utils.data.Dataset):
         sample = {
             'index': index,
             'clr': clr,
-            'dep': dep, # if has renturn PIL image
+            'dep': dep,  # if has renturn PIL image
             'kp2d': kp2d,
-            'center':center,
+            'center': center,
             'scale': scale,
             'joint': joint,
             'intr': intr,
@@ -364,23 +369,23 @@ class STBDataset(torch.utils.data.Dataset):
     def norm_dep_img(self, dep_, joint_z):
         if isinstance(dep_, PIL.Image.Image):
             dep_ = np.array(dep_)
-            assert(dep_.shape[-1] == 3) # used as "RGB"
+            assert (dep_.shape[-1] == 3)  # used as "RGB"
 
         ''' Converts a RGB-coded depth into float valued depth. '''
         ''' dep values now are stored as |mod|div|0| (RGB) '''
-        dep = (dep_[:,:,1] * 2**8 + dep_[:,:,0]).astype('float32')
-        dep /= 1000.0 # depth now in meter
+        dep = (dep_[:, :, 1] * 2 ** 8 + dep_[:, :, 0]).astype('float32')
+        dep /= 1000.0  # depth now in meter
 
-        lower_bound = joint_z.min() - 0.05 # meter
+        lower_bound = joint_z.min() - 0.05  # meter
         upper_bound = joint_z.max() + 0.05
 
-        np.putmask(dep, dep<=lower_bound, upper_bound)
+        np.putmask(dep, dep <= lower_bound, upper_bound)
         min_dep = dep.min() - 1e-3  # slightly compensate
-        np.putmask(dep, dep>=upper_bound, 0.0)
+        np.putmask(dep, dep >= upper_bound, 0.0)
         max_dep = dep.max() + 1e-3
-        np.putmask(dep, dep<=min_dep, max_dep)
+        np.putmask(dep, dep <= min_dep, max_dep)
         range_dep = max_dep - min_dep
-        dep = (-1 * dep + max_dep)/range_dep
+        dep = (-1 * dep + max_dep) / range_dep
         return dep
 
 
@@ -392,6 +397,7 @@ def main():
     )
     sample = stb.get_sample(0)
     return sample
+
 
 if __name__ == "__main__":
     main()

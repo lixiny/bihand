@@ -9,22 +9,23 @@ from bihand.utils.eval.zimeval import EvalUtil
 from progress.progress.bar import Bar
 
 
-class SIKONLINE(data.Dataset):
+class SIKOFFLINE(data.Dataset):
     """
     The Loader for joints so3 and quat
     """
+
     def __init__(
-        self,
-        data_root="/disk1/data",
-        data_split='train',
-        data_source=None,
+            self,
+            data_root="/disk1/data",
+            data_split='train',
+            data_source=None,
     ):
         self.impljointR = []
         self.targjointR = []
         self.ref_bone_link = (0, 9)  # mid mcp
-        self.joint_root_idx = 9 # root
+        self.joint_root_idx = 9  # root
 
-        data_path = os.path.join(data_root, 'SIK-online')
+        data_path = os.path.join(data_root, 'SIK-offline')
         if data_source is None:
             data_source = ['stb', 'rhd']
 
@@ -65,14 +66,13 @@ class SIKONLINE(data.Dataset):
         self.impljointR = np.concatenate(self.impljointR, axis=0)
         self.targjointR = np.concatenate(self.targjointR, axis=0)
         cprint(
-            'SIK-ONLINE {} set with source: {} init, total {}'
+            'SIK-OFFLINE {} set with source: {} init, total {}'
                 .format(data_split, data_source, len(self.impljointR)),
             'blue', attrs=['bold']
         )
 
     def __len__(self):
         return len(self.impljointR)
-
 
     def _prepare_data(self, jointR):
         # 1.
@@ -99,16 +99,14 @@ class SIKONLINE(data.Dataset):
         kin_chain = torch.from_numpy(kin_chain).float()
         kin_len = torch.from_numpy(kin_len).float()
         metas = {
-            'joint_bone':bone, #1
-            'jointRS':jointRS, #2
-            'kin_chain':kin_chain, #3
-            'kin_len':kin_len #4
+            'joint_bone': bone,  # 1
+            'jointRS': jointRS,  # 2
+            'kin_chain': kin_chain,  # 3
+            'kin_len': kin_len  # 4
         }
         return metas
-
 
     def __getitem__(self, index):
         impls = self._prepare_data(self.impljointR[index])
         targs = self._prepare_data(self.targjointR[index])
         return impls, targs
-

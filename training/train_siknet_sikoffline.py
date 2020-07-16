@@ -14,7 +14,6 @@ import torch.utils.data
 import matplotlib.pyplot as plt
 import pickle
 
-
 # select proper device to run
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
@@ -31,10 +30,11 @@ from progress.progress.bar import Bar
 from bihand.utils.eval.evalutils import AverageMeter
 from bihand.utils.eval.zimeval import EvalUtil
 
+
 def main(args):
     if (
-        not args.fine_tune
-        or not args.fine_tune in ['rhd', 'stb']
+            not args.fine_tune
+            or not args.fine_tune in ['rhd', 'stb']
     ):
         raise Exception('expect --fine_tune in [rhd|stb], got {}'
                         .format(args.fine_tune))
@@ -48,33 +48,33 @@ def main(args):
     model = models.SIKNet()
     model = model.to(device)
     criterion = losses.SIKLoss(
-        lambda_quat = 0.0,
-        lambda_joint = 1.0,
-        lambda_shape = 1.0
+        lambda_quat=0.0,
+        lambda_joint=1.0,
+        lambda_shape=1.0
     )
 
     optimizer = torch.optim.Adam(
         [
             {
                 'params': model.invk_layers.parameters(),
-                'initial_lr':args.learning_rate
+                'initial_lr': args.learning_rate
             },
             {
                 'params': model.shapereg_layers.parameters(),
-                'initial_lr':args.learning_rate
+                'initial_lr': args.learning_rate
             },
 
         ],
         lr=args.learning_rate,
     )
 
-    train_dataset = datasets.SIKONLINE(
+    train_dataset = datasets.SIKOFFLINE(
         data_root=args.data_root,
         data_split="train",
         data_source=args.datasets,
     )
 
-    val_dataset = datasets.SIKONLINE(
+    val_dataset = datasets.SIKOFFLINE(
         data_root=args.data_root,
         data_split="test",
         data_source=args.datasets,
@@ -109,7 +109,7 @@ def main(args):
 
     if args.evaluate:
         validate(val_loader, model, criterion, args=args)
-        cprint('Eval All Done', 'yellow',attrs=['bold'])
+        cprint('Eval All Done', 'yellow', attrs=['bold'])
         return 0
 
     model = torch.nn.DataParallel(model)
@@ -119,12 +119,12 @@ def main(args):
         last_epoch=args.start_epoch
     )
 
-    for epoch in range(args.start_epoch, args.epochs+1):
+    for epoch in range(args.start_epoch, args.epochs + 1):
         print('\nEpoch: %d' % (epoch))
         for i in range(len(optimizer.param_groups)):
-            print('group %d lr:'%i, optimizer.param_groups[i]['lr'])
+            print('group %d lr:' % i, optimizer.param_groups[i]['lr'])
         #############  trian for on epoch  ###############
-        train (
+        train(
             train_loader,
             model,
             criterion,
@@ -141,17 +141,17 @@ def main(args):
             checkpoint=args.checkpoint,
             filename='{}_{}.pth.tar'.format(args.saved_prefix, args.fine_tune),
             snapshot=args.snapshot,
-            is_best= auc_all > auc_best
+            is_best=auc_all > auc_best
         )
         if auc_all > auc_best:
             auc_best = auc_all
 
         scheduler.step()
-    cprint('All Done', 'yellow',attrs=['bold'])
-    return 0 # end of main
+    cprint('All Done', 'yellow', attrs=['bold'])
+    return 0  # end of main
 
-def validate(val_loader,  model, criterion, args, stop=-1):
 
+def validate(val_loader, model, criterion, args, stop=-1):
     evaluator = EvalUtil()
     model.eval()
     bar = Bar(colored('Eval', 'yellow'), max=len(val_loader))
@@ -173,17 +173,17 @@ def validate(val_loader,  model, criterion, args, stop=-1):
             pck30 = evaluator.get_pck_all(30)
             pck40 = evaluator.get_pck_all(40)
 
-            bar.suffix  = (
+            bar.suffix = (
                 '({batch}/{size}) '
                 'pck20avg: {pck20:.3f} | '
                 'pck30avg: {pck30:.3f} | '
                 'pck40avg: {pck40:.3f} | '
             ).format(
-                batch = i + 1,
-                size = len(val_loader),
-                pck20 = pck20,
-                pck30 = pck30,
-                pck40 = pck40,
+                batch=i + 1,
+                size=len(val_loader),
+                pck20=pck20,
+                pck30=pck30,
+                pck40=pck40,
             )
 
             bar.next()
@@ -203,9 +203,9 @@ def validate(val_loader,  model, criterion, args, stop=-1):
 
 
 def train(train_loader, model, criterion, optimizer, args):
-    batch_time   = AverageMeter()
-    data_time    = AverageMeter()
-    am_quat_norm   = AverageMeter()
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    am_quat_norm = AverageMeter()
     am_joint = AverageMeter()
     am_kin_len = AverageMeter()
 
@@ -235,7 +235,7 @@ def train(train_loader, model, criterion, optimizer, args):
         ''' progress '''
         batch_time.update(time.time() - last)
         last = time.time()
-        bar.suffix  = (
+        bar.suffix = (
             '({batch}/{size}) '
             'd: {data:.2f}s | '
             'b: {bt:.2f}s | '
@@ -245,36 +245,37 @@ def train(train_loader, model, criterion, optimizer, args):
             'lK: {lossK:.5f} | '
             'lN: {lossN:.5f} | '
         ).format(
-            batch = i+1,
-            size  = len(train_loader),
-            data  = data_time.avg,
-            bt    = batch_time.avg,
-            total = bar.elapsed_td,
-            eta   = bar.eta_td,
-            lossJ = am_joint.avg,
-            lossK = am_kin_len.avg,
-            lossN = am_quat_norm.avg,
+            batch=i + 1,
+            size=len(train_loader),
+            data=data_time.avg,
+            bt=batch_time.avg,
+            total=bar.elapsed_td,
+            eta=bar.eta_td,
+            lossJ=am_joint.avg,
+            lossK=am_kin_len.avg,
+            lossN=am_quat_norm.avg,
         )
         bar.next()
     bar.finish()
 
+
 def one_fowrard_pass(impls, targs, model, criterion, args, train=True):
     ''' prepare targets '''
-    impljointRS    = impls['jointRS'].to(device, non_blocking=True)
-    implkin_chain  = impls['kin_chain'].to(device, non_blocking=True)
+    impljointRS = impls['jointRS'].to(device, non_blocking=True)
+    implkin_chain = impls['kin_chain'].to(device, non_blocking=True)
 
     ''' ----------------  Forward Pass  ---------------- '''
-    results = model( impljointRS, implkin_chain)
+    results = model(impljointRS, implkin_chain)
     ''' ----------------  Forward End   ---------------- '''
 
-    targkin_len     = targs['kin_len'].to(device, non_blocking=True)
-    targjoint_bone  = targs['joint_bone'].to(device, non_blocking=True)
-    targjointRS     = targs['jointRS'].to(device, non_blocking=True)
+    targkin_len = targs['kin_len'].to(device, non_blocking=True)
+    targjoint_bone = targs['joint_bone'].to(device, non_blocking=True)
+    targjointRS = targs['jointRS'].to(device, non_blocking=True)
     targets = {
-        'batch_size':targjointRS.shape[0],
-        'jointRS':targjointRS,
-        'kin_len':targkin_len,
-        'joint_bone':targjoint_bone
+        'batch_size': targjointRS.shape[0],
+        'jointRS': targjointRS,
+        'kin_len': targkin_len,
+        'joint_bone': targjoint_bone
     }
 
     total_loss = torch.Tensor([0]).cuda()
@@ -286,20 +287,21 @@ def one_fowrard_pass(impls, targs, model, criterion, args, train=True):
     total_loss, losses = criterion.compute_loss(results, targets)
     return results, targets, total_loss, losses
 
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='PyTorch Train 3d-Hand-Circle')
+    parser = argparse.ArgumentParser(description='PyTorch Train SIKNet on SIKOffline Dataset')
     # Miscs
     parser.add_argument(
         '-dr',
         '--data_root',
         type=str,
-        default='/media/sirius/Lixin213G/Dataset',
+        default='data',
         help='dataset root directory'
     )
     parser.add_argument(
         '-ckp',
         '--checkpoint',
-        default='/home/sirius/Documents/BiHand/checkpoints',
+        default='checkpoints',
         type=str,
         metavar='PATH',
         help='path to save checkpoint (default: checkpoint)'
@@ -316,7 +318,7 @@ if __name__ == '__main__':
         '--fine_tune',
         type=str,
         default='',
-        help='fine tune dataset. should in: [rhd|stb|freihand]'
+        help='fine tune dataset. should in: [rhd|stb]'
     )
     parser.add_argument(
         '--snapshot',
@@ -361,7 +363,7 @@ if __name__ == '__main__':
         help='manual epoch number (useful on restarts)'
     )
     parser.add_argument(
-        '-b','--train_batch',
+        '-b', '--train_batch',
         default=5,
         type=int,
         metavar='N',

@@ -35,7 +35,7 @@ def main(args):
     if not os.path.isdir(args.checkpoint):
         os.makedirs(args.checkpoint)
     if args.fine_tune:
-        args.datasets = [args.fine_tune,]
+        args.datasets = [args.fine_tune, ]
     else:
         args.fine_tune = 'all'
     misc.print_args(args)
@@ -170,37 +170,37 @@ def main(args):
 
 def one_forward_pass(metas, model, criterion, args=None, train=True):
     ''' prepare infos '''
-    joint_root   = metas['joint_root'].to(device, non_blocking=True) # (B, 3)
-    joint_bone   = metas['joint_bone'].to(device, non_blocking=True) # (B, 1)
-    intr         = metas['intr'].to(device, non_blocking=True)
-    hm_veil      = metas['hm_veil'].to(device, non_blocking=True)
-    dep_veil     = metas['dep_veil'].to(device, non_blocking=True) # (B, 1)
-    ndep_valid   = torch.sum(dep_veil).item()
+    joint_root = metas['joint_root'].to(device, non_blocking=True)  # (B, 3)
+    joint_bone = metas['joint_bone'].to(device, non_blocking=True)  # (B, 1)
+    intr = metas['intr'].to(device, non_blocking=True)
+    hm_veil = metas['hm_veil'].to(device, non_blocking=True)
+    dep_veil = metas['dep_veil'].to(device, non_blocking=True)  # (B, 1)
+    ndep_valid = torch.sum(dep_veil).item()
     infos = {
-        'joint_root':joint_root,
-        'intr':intr,
-        'joint_bone':joint_bone,
-        'hm_veil':hm_veil,
-        'dep_veil':dep_veil,
-        'batch_size':joint_root.shape[0],
-        'ndep_valid':ndep_valid,
+        'joint_root': joint_root,
+        'intr': intr,
+        'joint_bone': joint_bone,
+        'hm_veil': hm_veil,
+        'dep_veil': dep_veil,
+        'batch_size': joint_root.shape[0],
+        'ndep_valid': ndep_valid,
     }
     ''' prepare targets '''
-    clr     = metas['clr'].to(device, non_blocking=True)
-    hm      = metas['hm'].to(device, non_blocking=True)
-    dep     = metas['dep'].to(device, non_blocking=True) # (B, 64, 64)
-    kp2d    = metas['kp2d'].to(device, non_blocking=True)
-    joint   = metas['joint'].to(device, non_blocking=True)  # (B, 21, 3)
-    jointRS  = metas['jointRS'].to(device, non_blocking=True)
-    mask    = metas['mask'].to(device, non_blocking=True)  # (B, 64, 64)
+    clr = metas['clr'].to(device, non_blocking=True)
+    hm = metas['hm'].to(device, non_blocking=True)
+    dep = metas['dep'].to(device, non_blocking=True)  # (B, 64, 64)
+    kp2d = metas['kp2d'].to(device, non_blocking=True)
+    joint = metas['joint'].to(device, non_blocking=True)  # (B, 21, 3)
+    jointRS = metas['jointRS'].to(device, non_blocking=True)
+    mask = metas['mask'].to(device, non_blocking=True)  # (B, 64, 64)
     targets = {
-        'clr':clr,
-        'hm':hm,
-        'joint':joint,
-        'kp2d':kp2d,
-        'jointRS':jointRS,
-        'dep':dep,
-        'mask':mask,
+        'clr': clr,
+        'hm': hm,
+        'joint': joint,
+        'kp2d': kp2d,
+        'jointRS': jointRS,
+        'dep': dep,
+        'mask': mask,
     }
     ''' ----------------  Forward Pass  ---------------- '''
     results = model(clr, infos)
@@ -218,7 +218,6 @@ def one_forward_pass(metas, model, criterion, args=None, train=True):
         )
         total_loss += ups_total_loss
         losses.update(ups_losses)
-
 
     return results, {**targets, **infos}, total_loss, losses
 
@@ -330,13 +329,13 @@ def validate(val_loader, model, criterion, args, stop=-1):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='PyTorch Train BiHand')
+    parser = argparse.ArgumentParser(description='PyTorch Train BiHand Stage 2: LiftNet')
     # Dataset setting
     parser.add_argument(
         '-dr',
         '--data_root',
         type=str,
-        default='/media/sirius/Lixin213G/Dataset',
+        default='data',
         help='dataset root directory'
     )
     parser.add_argument(
@@ -344,13 +343,13 @@ if __name__ == '__main__':
         nargs="+",
         default=['stb', 'rhd'],
         type=str,
-        help="sub datasets, should be listed in: [rhd|stb|freihand]"
+        help="sub datasets, should be listed in: [rhd|stb]"
     )
     parser.add_argument(
         '--fine_tune',
         type=str,
         default='',
-        help='fine tune dataset. should in: [rhd|stb|freihand]'
+        help='fine tune dataset. should in: [rhd|stb]'
     )
 
     # Model Structure
@@ -384,7 +383,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '-ckp',
         '--checkpoint',
-        default='/home/sirius/Documents/BiHand/checkpoints',
+        default='checkpoints',
         type=str,
         metavar='PATH',
         help='path to save checkpoint (default: checkpoint)'
@@ -491,6 +490,5 @@ if __name__ == '__main__':
         action='store_true',
         help='Calculate upstream loss'
     )
-
 
     main(parser.parse_args())

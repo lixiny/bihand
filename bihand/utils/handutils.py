@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 
 import numpy as np
+
 try:
     from PIL import Image
 except ImportError:
@@ -10,20 +11,20 @@ except ImportError:
 import bihand.config as cfg
 import bihand.utils.func as func
 
-def get_joint_bone(joint, ref_bone_link=None):
 
+def get_joint_bone(joint, ref_bone_link=None):
     if ref_bone_link is None:
-        ref_bone_link = (0,9)
+        ref_bone_link = (0, 9)
 
     if (
-        not torch.is_tensor(joint)
-        and not isinstance(joint, np.ndarray)
+            not torch.is_tensor(joint)
+            and not isinstance(joint, np.ndarray)
     ):
         raise TypeError('joint should be ndarray or torch tensor. Got {}'.format(type(joint)))
     if (
-        len(joint.shape) != 3
-        or joint.shape[1] != 21
-        or joint.shape[2] != 3
+            len(joint.shape) != 3
+            or joint.shape[1] != 21
+            or joint.shape[2] != 3
     ):
         raise TypeError('joint should have shape (B, njoint, 3), Got {}'.format(joint.shape))
 
@@ -32,7 +33,7 @@ def get_joint_bone(joint, ref_bone_link=None):
     if torch.is_tensor(joint):
         bone = torch.zeros((batch_size, 1)).to(joint.device)
         for jid, nextjid in zip(
-            ref_bone_link[:-1], ref_bone_link[1:]
+                ref_bone_link[:-1], ref_bone_link[1:]
         ):
             bone += torch.norm(
                 joint[:, jid, :] - joint[:, nextjid, :],
@@ -41,44 +42,45 @@ def get_joint_bone(joint, ref_bone_link=None):
     elif isinstance(joint, np.ndarray):
         bone = np.zeros((batch_size, 1))
         for jid, nextjid in zip(
-            ref_bone_link[:-1], ref_bone_link[1:]
+                ref_bone_link[:-1], ref_bone_link[1:]
         ):
             bone += np.linalg.norm(
                 (joint[:, jid, :] - joint[:, nextjid, :]),
-               ord=2, axis=1, keepdims=True
-            ) # (B, 1)
+                ord=2, axis=1, keepdims=True
+            )  # (B, 1)
     return bone
 
+
 def uvd2xyz(
-    uvd,
-    joint_root,
-    joint_bone,
-    intr = None,
-    trans = None,
-    scale = None,
-    inp_res = 256,
-    mode='persp'
+        uvd,
+        joint_root,
+        joint_bone,
+        intr=None,
+        trans=None,
+        scale=None,
+        inp_res=256,
+        mode='persp'
 ):
     bs = uvd.shape[0]
     if mode in ['persp', 'perspective']:
         if intr is None:
             raise Exception("No intr found in perspective")
         '''1. denormalized uvd'''
-        uv = uvd[:, :, :2] * inp_res # 0~256
-        depth = ( uvd[:, :, 2] * cfg.DEPTH_RANGE ) + cfg.DEPTH_MIN
-        root_depth = joint_root[:, -1].unsqueeze(-1) #(B, 1)
+        uv = uvd[:, :, :2] * inp_res  # 0~256
+        depth = (uvd[:, :, 2] * cfg.DEPTH_RANGE) + cfg.DEPTH_MIN
+        root_depth = joint_root[:, -1].unsqueeze(-1)  # (B, 1)
         z = depth * joint_bone.expand_as(uvd[:, :, 2]) + \
             root_depth.expand_as(uvd[:, :, 2])  # B x M
 
         '''2. uvd->xyz'''
-        camparam = torch.zeros((bs, 4)).float().to(intr.device) #(B, 4)
-        camparam[:, 0] = intr[:, 0, 0] #fx
-        camparam[:, 1] = intr[:, 1, 1] #fx
-        camparam[:, 2] = intr[:, 0, 2] #cx
-        camparam[:, 3] = intr[:, 1, 2] #cy
+        camparam = torch.zeros((bs, 4)).float().to(intr.device)  # (B, 4)
+        camparam[:, 0] = intr[:, 0, 0]  # fx
+        camparam[:, 1] = intr[:, 1, 1]  # fx
+        camparam[:, 2] = intr[:, 0, 2]  # cx
+        camparam[:, 3] = intr[:, 1, 2]  # cy
         camparam = camparam.unsqueeze(1).expand(-1, uvd.size(1), -1)  # B x M x 4
         xy = ((uv - camparam[:, :, 2:4]) / camparam[:, :, :2]) * \
-            z.unsqueeze(-1).expand_as(uv)  # B x M x 2
+             z.unsqueeze(-1).expand_as(uv)  # B x M x 2
         return torch.cat((xy, z.unsqueeze(-1)), -1)  # B x M x 3
     elif mode in ['ortho', 'orthogonal']:
         if trans is None or scale is None:
@@ -87,36 +89,37 @@ def uvd2xyz(
     else:
         raise Exception("Unkonwn mode type. should in ['persp', 'ortho']")
 
+
 def xyz2uvd(
-    xyz,
-    joint_root,
-    joint_bone,
-    intr = None,
-    trans = None,
-    scale = None,
-    inp_res = 256,
-    mode='persp'
+        xyz,
+        joint_root,
+        joint_bone,
+        intr=None,
+        trans=None,
+        scale=None,
+        inp_res=256,
+        mode='persp'
 ):
     bs = xyz.shape[0]
     if mode in ['persp', 'perspective']:
-        if intr is None :
+        if intr is None:
             raise Exception("No intr found in perspective")
         z = xyz[:, :, 2]
         xy = xyz[:, :, :2]
         xy = xy / z.unsqueeze(-1).expand_as(xy)
 
         ''' 1. normalize depth : root_relative, scale_invariant '''
-        root_depth = joint_root[:, -1].unsqueeze(-1) # (B, 1)
+        root_depth = joint_root[:, -1].unsqueeze(-1)  # (B, 1)
         depth = (z - root_depth.expand_as(z)) / joint_bone.expand_as(z)
 
         '''2. xy->uv'''
-        camparam = torch.zeros((bs, 4)).float().to(intr.device) #(B, 4)
-        camparam[:, 0] = intr[:, 0, 0] #fx
-        camparam[:, 1] = intr[:, 1, 1] #fx
-        camparam[:, 2] = intr[:, 0, 2] #cx
-        camparam[:, 3] = intr[:, 1, 2] #cy
+        camparam = torch.zeros((bs, 4)).float().to(intr.device)  # (B, 4)
+        camparam[:, 0] = intr[:, 0, 0]  # fx
+        camparam[:, 1] = intr[:, 1, 1]  # fx
+        camparam[:, 2] = intr[:, 0, 2]  # cx
+        camparam[:, 3] = intr[:, 1, 2]  # cy
         camparam = camparam.unsqueeze(1).expand(-1, xyz.size(1), -1)  # B x M x 4
-        uv = ( xy * camparam[:, :, :2] ) + camparam[:, :, 2:4]
+        uv = (xy * camparam[:, :, :2]) + camparam[:, :, 2:4]
 
         '''3. normalize uvd to 0~1'''
         uv = uv / inp_res
@@ -130,15 +133,16 @@ def xyz2uvd(
     else:
         raise Exception("Unkonwn proj type. should in ['persp', 'ortho']")
 
+
 def persp_joint2kp(joint, intr):
-    joint_homo = torch.matmul(joint, intr.transpose(1,2))
+    joint_homo = torch.matmul(joint, intr.transpose(1, 2))
     kp2d = joint_homo / joint_homo[:, :, 2:]
     kp2d = kp2d[:, :, :2]
     return kp2d
 
 
 def rot_kp2d(kp2d, rot):
-    kp2d = np.concatenate( (kp2d, np.ones((kp2d.shape[0], 1)) ), axis=1)
+    kp2d = np.concatenate((kp2d, np.ones((kp2d.shape[0], 1))), axis=1)
     new_kp2d = np.matmul(kp2d, rot.transpose())
     return new_kp2d
 
@@ -263,42 +267,40 @@ def get_affine_transform_bak(center, scale, res, rot):
 
 
 def gen_cam_param(joint, kp2d, mode='ortho'):
-
     if mode in ['persp', 'perspective']:
-        kp2d = kp2d.reshape(-1)[:, np.newaxis] #(42, 1)
+        kp2d = kp2d.reshape(-1)[:, np.newaxis]  # (42, 1)
         joint = joint / joint[:, 2:]
         joint = joint[:, :2]
         jM = np.zeros((42, 2), dtype="float32")
-        for i in range(joint.shape[0]): #21
-            jM[2*i][0] = joint[i][0]
-            jM[2*i+1][1] = joint[i][1]
+        for i in range(joint.shape[0]):  # 21
+            jM[2 * i][0] = joint[i][0]
+            jM[2 * i + 1][1] = joint[i][1]
         pad2 = np.array(range(42))
         pad2 = (pad2 % 2)[:, np.newaxis]
         pad1 = (1 - pad2)
 
-        jM = np.concatenate([jM, pad1, pad2], axis=1) #(42, 4)
-        jMT = jM.transpose() #(4, 42)
-        jMTjM = np.matmul(jMT, jM) #(4,4)
+        jM = np.concatenate([jM, pad1, pad2], axis=1)  # (42, 4)
+        jMT = jM.transpose()  # (4, 42)
+        jMTjM = np.matmul(jMT, jM)  # (4,4)
         jMTb = np.matmul(jMT, kp2d)
-        cam_param = np.matmul( np.linalg.inv(jMTjM), jMTb)
+        cam_param = np.matmul(np.linalg.inv(jMTjM), jMTb)
         cam_param = cam_param.reshape(-1)
         return cam_param
     elif mode in ['ortho', 'orthogonal']:
         # ortho only when
         assert np.sum(np.abs(joint[0, :])) == 0
-        joint = joint[:, :2] #(21, 2)
+        joint = joint[:, :2]  # (21, 2)
         joint = joint.reshape(-1)[:, np.newaxis]
         kp2d = kp2d.reshape(-1)[:, np.newaxis]
         pad2 = np.array(range(42))
         pad2 = (pad2 % 2)[:, np.newaxis]
         pad1 = (1 - pad2)
-        jM = np.concatenate([joint, pad1, pad2], axis=1) #(42, 3)
-        jMT = jM.transpose() #(3, 42)
+        jM = np.concatenate([joint, pad1, pad2], axis=1)  # (42, 3)
+        jMT = jM.transpose()  # (3, 42)
         jMTjM = np.matmul(jMT, jM)
         jMTb = np.matmul(jMT, kp2d)
-        cam_param = np.matmul( np.linalg.inv(jMTjM), jMTb)
+        cam_param = np.matmul(np.linalg.inv(jMTjM), jMTb)
         cam_param = cam_param.reshape(-1)
         return cam_param
     else:
         raise Exception("Unkonwn mode type. should in ['persp', 'orth']")
-

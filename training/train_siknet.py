@@ -14,7 +14,6 @@ import torch.utils.data
 import matplotlib.pyplot as plt
 import pickle
 
-
 # select proper device to run
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
@@ -32,10 +31,11 @@ from bihand.utils.eval.evalutils import AverageMeter
 from bihand.utils.eval.zimeval import EvalUtil
 from bihand.datasets.handataset import HandDataset
 
+
 def main(args):
     if (
-        not args.fine_tune
-        or not args.fine_tune in ['rhd', 'stb']
+            not args.fine_tune
+            or not args.fine_tune in ['rhd', 'stb']
     ):
         raise Exception('expect --fine_tune in [rhd|stb], got {}'
                         .format(args.fine_tune))
@@ -48,7 +48,7 @@ def main(args):
     print("\nCREATE NETWORK")
 
     model = models.NetBiHand(
-        net_modules=['seed','lift','sik'],
+        net_modules=['seed', 'lift', 'sik'],
         njoints=21,
         inp_res=256,
         out_hm_res=64,
@@ -59,16 +59,16 @@ def main(args):
     model = model.to(device)
 
     criterion = losses.SIKLoss(
-        lambda_quat = 0.0,
-        lambda_joint = 1.0,
-        lambda_shape = 1.0
+        lambda_quat=0.0,
+        lambda_joint=1.0,
+        lambda_shape=1.0
     )
 
     optimizer = torch.optim.Adam(
         [
             {
                 'params': model.siknet.parameters(),
-                'initial_lr':args.learning_rate
+                'initial_lr': args.learning_rate
             },
 
         ],
@@ -76,13 +76,13 @@ def main(args):
     )
 
     train_dataset = HandDataset(
-        data_split = 'train',
+        data_split='train',
         train=True,
         scale_jittering=0.2,
         center_jettering=0.2,
         max_rot=0.5 * np.pi,
-        subset_name = args.datasets,
-        data_root = args.data_root,
+        subset_name=args.datasets,
+        data_root=args.data_root,
     )
 
     val_dataset = HandDataset(
@@ -114,14 +114,14 @@ def main(args):
         ckp_seednet=os.path.join(args.checkpoint, 'ckp_seednet_all.pth.tar'),
         ckp_liftnet=os.path.join(args.checkpoint, args.fine_tune,
                                  'ckp_liftnet_{}.pth.tar'.format(args.fine_tune)),
-        ckp_siknet = os.path.join(args.checkpoint, 'ckp_siknet_synth.pth.tar')
+        ckp_siknet=os.path.join(args.checkpoint, 'ckp_siknet_synth.pth.tar')
     )
     for params in model.upstream.parameters():
         params.requires_grad = False
 
     if args.evaluate or args.resume:
         model.load_checkpoints(
-            ckp_siknet = os.path.join(
+            ckp_siknet=os.path.join(
                 args.checkpoint, args.fine_tune,
                 'ckp_siknet_{}.pth.tar'.format(args.fine_tune)
             )
@@ -129,7 +129,7 @@ def main(args):
 
     if args.evaluate:
         validate(val_loader, model, criterion, args=args)
-        cprint('Eval All Done', 'yellow',attrs=['bold'])
+        cprint('Eval All Done', 'yellow', attrs=['bold'])
         return 0
 
     model = torch.nn.DataParallel(model)
@@ -139,12 +139,12 @@ def main(args):
         last_epoch=args.start_epoch
     )
 
-    for epoch in range(args.start_epoch, args.epochs+1):
+    for epoch in range(args.start_epoch, args.epochs + 1):
         print('\nEpoch: %d' % (epoch))
         for i in range(len(optimizer.param_groups)):
-            print('group %d lr:'%i, optimizer.param_groups[i]['lr'])
+            print('group %d lr:' % i, optimizer.param_groups[i]['lr'])
         #############  trian for on epoch  ###############
-        train (
+        train(
             train_loader,
             model,
             criterion,
@@ -161,18 +161,18 @@ def main(args):
             checkpoint=args.checkpoint,
             filename='{}_{}.pth.tar'.format(args.saved_prefix, args.fine_tune),
             snapshot=args.snapshot,
-            is_best= auc_all > auc_best
+            is_best=auc_all > auc_best
         )
         if auc_all > auc_best:
             auc_best = auc_all
 
         scheduler.step()
-    cprint('All Done', 'yellow',attrs=['bold'])
-    return 0 # end of main
+    cprint('All Done', 'yellow', attrs=['bold'])
+    return 0  # end of main
 
-def validate(val_loader,  model, criterion, args, stop=-1):
 
-    am_quat_norm   = AverageMeter()
+def validate(val_loader, model, criterion, args, stop=-1):
+    am_quat_norm = AverageMeter()
     evaluator = EvalUtil()
     model.eval()
     bar = Bar(colored('Eval', 'yellow'), max=len(val_loader))
@@ -198,17 +198,17 @@ def validate(val_loader,  model, criterion, args, stop=-1):
             pck30 = evaluator.get_pck_all(30)
             pck40 = evaluator.get_pck_all(40)
 
-            bar.suffix  = (
+            bar.suffix = (
                 '({batch}/{size}) '
                 'pck20avg: {pck20:.3f} | '
                 'pck30avg: {pck30:.3f} | '
                 'pck40avg: {pck40:.3f} | '
             ).format(
-                batch = i + 1,
-                size = len(val_loader),
-                pck20 = pck20,
-                pck30 = pck30,
-                pck40 = pck40,
+                batch=i + 1,
+                size=len(val_loader),
+                pck20=pck20,
+                pck30=pck30,
+                pck40=pck40,
             )
 
             bar.next()
@@ -228,9 +228,9 @@ def validate(val_loader,  model, criterion, args, stop=-1):
 
 
 def train(train_loader, model, criterion, optimizer, args):
-    batch_time   = AverageMeter()
-    data_time    = AverageMeter()
-    am_quat_norm   = AverageMeter()
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    am_quat_norm = AverageMeter()
     am_joint = AverageMeter()
     am_kin_len = AverageMeter()
 
@@ -260,7 +260,7 @@ def train(train_loader, model, criterion, optimizer, args):
         ''' progress '''
         batch_time.update(time.time() - last)
         last = time.time()
-        bar.suffix  = (
+        bar.suffix = (
             '({batch}/{size}) '
             'd: {data:.2f}s | '
             'b: {bt:.2f}s | '
@@ -270,18 +270,19 @@ def train(train_loader, model, criterion, optimizer, args):
             'lK: {lossK:.5f} | '
             'lN: {lossN:.5f} | '
         ).format(
-            batch = i+1,
-            size  = len(train_loader),
-            data  = data_time.avg,
-            bt    = batch_time.avg,
-            total = bar.elapsed_td,
-            eta   = bar.eta_td,
-            lossJ = am_joint.avg,
-            lossK = am_kin_len.avg,
-            lossN = am_quat_norm.avg,
+            batch=i + 1,
+            size=len(train_loader),
+            data=data_time.avg,
+            bt=batch_time.avg,
+            total=bar.elapsed_td,
+            eta=bar.eta_td,
+            lossJ=am_joint.avg,
+            lossK=am_kin_len.avg,
+            lossN=am_quat_norm.avg,
         )
         bar.next()
     bar.finish()
+
 
 def one_fowrard_pass(metas, model, criterion, args, train=True):
     """ prepare infos """
@@ -316,7 +317,7 @@ def one_fowrard_pass(metas, model, criterion, args, train=True):
         'joint': joint,
         'kp2d': kp2d,
         'jointRS': jointRS,
-        'kin_len':kin_len,
+        'kin_len': kin_len,
         'dep': dep,
         'mask': mask,
     }
@@ -334,20 +335,21 @@ def one_fowrard_pass(metas, model, criterion, args, train=True):
     total_loss, losses = criterion.compute_loss(results, targets)
     return results, targets, total_loss, losses
 
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='PyTorch Train 3d-Hand-Circle')
+    parser = argparse.ArgumentParser(description='PyTorch Train BiHand Stage 3: SIKNet (with SeedNet, LiftNet Freeze)')
     # Miscs
     parser.add_argument(
         '-dr',
         '--data_root',
         type=str,
-        default='/media/sirius/Lixin213G/Dataset',
+        default='data',
         help='dataset root directory'
     )
     parser.add_argument(
         '-ckp',
         '--checkpoint',
-        default='/home/sirius/Documents/BiHand/checkpoints',
+        default='checkpoints',
         type=str,
         metavar='PATH',
         help='path to save checkpoint (default: checkpoint)'
@@ -364,7 +366,7 @@ if __name__ == '__main__':
         '--fine_tune',
         type=str,
         default='',
-        help='fine tune dataset. should in: [rhd|stb|freihand]'
+        help='fine tune dataset. should in: [rhd|stb]'
     )
     parser.add_argument(
         '--snapshot',
@@ -409,7 +411,7 @@ if __name__ == '__main__':
         help='manual epoch number (useful on restarts)'
     )
     parser.add_argument(
-        '-b','--train_batch',
+        '-b', '--train_batch',
         default=16,
         type=int,
         metavar='N',

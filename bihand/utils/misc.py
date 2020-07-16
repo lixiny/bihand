@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from termcolor import colored, cprint
 import bihand.utils.func as func
 
+
 def print_args(args):
     opts = vars(args)
     cprint("{:>30}  Options  {}".format("=" * 15, "=" * 15), 'yellow')
@@ -19,15 +20,15 @@ def print_args(args):
 
 
 def param_count(net):
-    return sum(p.numel() for p in net.parameters())/1e6
+    return sum(p.numel() for p in net.parameters()) / 1e6
 
 
 def save_checkpoint(
-    state,
-    checkpoint='checkpoint',
-    filename='checkpoint.pth.tar',
-    snapshot=None,
-    is_best = False
+        state,
+        checkpoint='checkpoint',
+        filename='checkpoint.pth.tar',
+        snapshot=None,
+        is_best=False
 ):
     # preds = to_numpy(preds)
     filepath = os.path.join(checkpoint, filename)
@@ -51,6 +52,7 @@ def save_checkpoint(
                 '{}_best.pth.tar'.format(fileprefix)
             )
         )
+
 
 def load_checkpoint(model, checkpoint):
     name = checkpoint
@@ -84,7 +86,7 @@ def clean_state_dict(state_dict):
     clean_model = OrderedDict()
     if any(key.startswith('module') for key in state_dict):
         for k, v in state_dict.items():
-            name = k[7:] # remove `module.`
+            name = k[7:]  # remove `module.`
             clean_model[name] = v
     else:
         return state_dict
@@ -95,38 +97,42 @@ def clean_state_dict(state_dict):
 def save_pred(preds, checkpoint='checkpoint', filename='preds_valid.mat'):
     preds = func.to_numpy(preds)
     filepath = os.path.join(checkpoint, filename)
-    scipy.io.savemat(filepath, mdict={'preds' : preds})
+    scipy.io.savemat(filepath, mdict={'preds': preds})
+
 
 def adjust_learning_rate(optimizer, epoch, lr, schedule, gamma):
     """Sets the learning rate to the initial LR decayed by schedule"""
     if epoch in schedule:
         lr *= gamma
-        print("adjust learning rate to: %.3e" %lr)
+        print("adjust learning rate to: %.3e" % lr)
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
     return lr
+
 
 def adjust_learning_rate_in_group(optimizer, group_id, epoch, lr, schedule, gamma):
     """Sets the learning rate to the initial LR decayed by schedule"""
     if epoch in schedule:
         lr *= gamma
-        print("adjust learning rate of group %d to: %.3e" %(group_id, lr))
+        print("adjust learning rate of group %d to: %.3e" % (group_id, lr))
         optimizer.param_groups[group_id]['lr'] = lr
     return lr
+
 
 def resume_learning_rate(optimizer, epoch, lr, schedule, gamma):
     for decay_id in schedule:
         if epoch > decay_id:
             lr *= gamma
-    print("adjust learning rate to: %.3e" %lr)
+    print("adjust learning rate to: %.3e" % lr)
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
     return lr
+
 
 def resume_learning_rate_in_group(optimizer, group_id, epoch, lr, schedule, gamma):
     for decay_id in schedule:
         if epoch > decay_id:
             lr *= gamma
-    print("adjust learning rate of group %d to: %.3e" %(group_id, lr))
+    print("adjust learning rate of group %d to: %.3e" % (group_id, lr))
     optimizer.param_groups[group_id]['lr'] = lr
     return lr

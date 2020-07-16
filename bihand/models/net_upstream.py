@@ -13,9 +13,8 @@ from bihand.utils.misc import param_count
 from termcolor import cprint
 
 
-
 class IntegralPose(nn.Module):
-    def __init__(self,):
+    def __init__(self, ):
         super(IntegralPose, self).__init__()
 
     def forward(self, hm3d):
@@ -28,9 +27,9 @@ class IntegralPose(nn.Module):
             uvd {tensor (B, 21, 3)}
         """
 
-        d_accu = torch.sum(hm3d, dim=[3,4])
-        v_accu = torch.sum(hm3d, dim=[2,4])
-        u_accu = torch.sum(hm3d, dim=[2,3])
+        d_accu = torch.sum(hm3d, dim=[3, 4])
+        v_accu = torch.sum(hm3d, dim=[2, 4])
+        u_accu = torch.sum(hm3d, dim=[2, 3])
 
         weightd = torch.arange(d_accu.shape[-1], dtype=d_accu.dtype, device=d_accu.device) / d_accu.shape[-1]
         weightv = torch.arange(v_accu.shape[-1], dtype=v_accu.dtype, device=v_accu.device) / v_accu.shape[-1]
@@ -44,26 +43,26 @@ class IntegralPose(nn.Module):
         v_ = torch.sum(v_, dim=-1, keepdim=True)
         u_ = torch.sum(u_, dim=-1, keepdim=True)
 
-        uvd = torch.cat([u_,v_,d_], dim=-1)
+        uvd = torch.cat([u_, v_, d_], dim=-1)
         return uvd
 
 
 class NetUpstream(nn.Module):
     def __init__(
-        self,
-        net_modules,
-        hg_stacks=2,
-        hg_blocks=1,
-        njoints=21,
-        inp_res=256,
-        out_hm_res=64,
-        out_dep_res=64,
+            self,
+            net_modules,
+            hg_stacks=2,
+            hg_blocks=1,
+            njoints=21,
+            inp_res=256,
+            out_hm_res=64,
+            out_dep_res=64,
     ):
         super(NetUpstream, self).__init__()
-        self.inp_res       = inp_res # 256
-        self.out_hm_res    = out_hm_res # 64
-        self.out_dep_res   = out_dep_res # 64
-        self.njoints       = njoints
+        self.inp_res = inp_res  # 256
+        self.out_hm_res = out_hm_res  # 64
+        self.out_dep_res = out_dep_res  # 64
+        self.njoints = njoints
         self.integral_pose = IntegralPose()
         self.net_modules = ['seed'] + [
             'lift' if ('lift' in net_modules) else ''
@@ -126,11 +125,11 @@ class NetUpstream(nn.Module):
                 l_joint.append(joint)
 
         ups_result = {
-            "l_hm"   : l_hm,
-            "l_mask" : l_mask,
-            "l_uvd"  : l_uvd,
+            "l_hm": l_hm,
+            "l_mask": l_mask,
+            "l_uvd": l_uvd,
             "l_joint": l_joint,
-            "l_dep"  : l_dep,
+            "l_dep": l_dep,
         }
         ups_enc = {
             "enc": l_enc[-1],

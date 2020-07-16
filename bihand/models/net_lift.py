@@ -11,13 +11,14 @@ from termcolor import colored, cprint
 from bihand.models.bases.bottleneck import BottleneckBlock
 from bihand.models.bases.hourglass import HourglassBisected
 
+
 class LiftNet(nn.Module):
     def __init__(
-        self,
-        nstacks=2,
-        nblocks=1,
-        njoints=21,
-        block=BottleneckBlock,
+            self,
+            nstacks=2,
+            nblocks=1,
+            njoints=21,
+            block=BottleneckBlock,
     ):
         super(LiftNet, self).__init__()
         self.njoints = njoints
@@ -28,10 +29,10 @@ class LiftNet(nn.Module):
         z_res = [32, 64]
 
         # encoding previous hm and mask
-        self._hm_prev = nn.Conv2d(njoints, self.in_planes, kernel_size=1, bias=True )
+        self._hm_prev = nn.Conv2d(njoints, self.in_planes, kernel_size=1, bias=True)
         self._mask_prev = nn.Conv2d(1, self.in_planes, kernel_size=1, bias=True)
 
-        hg3d2b, res1, res2, fc1, _fc1, fc2, _fc2 = [],[],[],[],[],[],[]
+        hg3d2b, res1, res2, fc1, _fc1, fc2, _fc2 = [], [], [], [], [], [], []
         hm3d, _hm3d, dep, _dep = [], [], [], []
         for i in range(nstacks):
             hg3d2b.append(HourglassBisected(block, nblocks, ch, depth=4))
@@ -53,23 +54,23 @@ class LiftNet(nn.Module):
                 )
             )
 
-            if i < nstacks-1:
+            if i < nstacks - 1:
                 _fc1.append(nn.Conv2d(ch, ch, kernel_size=1, bias=False))
                 _fc2.append(nn.Conv2d(ch, ch, kernel_size=1, bias=False))
                 _hm3d.append(nn.Conv2d(z_res[i] * njoints, ch, kernel_size=1, bias=False))
                 _dep.append(nn.Conv2d(1, ch, kernel_size=1, bias=False))
 
         self.z_res = z_res
-        self.hg3d2b  = nn.ModuleList(hg3d2b) # hgs: hourglass stack
-        self.res1  = nn.ModuleList(res1)
-        self.fc1   = nn.ModuleList(fc1)
-        self._fc1  = nn.ModuleList(_fc1)
-        self.res2  = nn.ModuleList(res2)
-        self.fc2   = nn.ModuleList(fc2)
-        self._fc2  = nn.ModuleList(_fc2)
-        self.hm3d   = nn.ModuleList(hm3d)
-        self._hm3d  = nn.ModuleList(_hm3d)
-        self.dep  = nn.ModuleList(dep)
+        self.hg3d2b = nn.ModuleList(hg3d2b)  # hgs: hourglass stack
+        self.res1 = nn.ModuleList(res1)
+        self.fc1 = nn.ModuleList(fc1)
+        self._fc1 = nn.ModuleList(_fc1)
+        self.res2 = nn.ModuleList(res2)
+        self.fc2 = nn.ModuleList(fc2)
+        self._fc2 = nn.ModuleList(_fc2)
+        self.hm3d = nn.ModuleList(hm3d)
+        self._hm3d = nn.ModuleList(_hm3d)
+        self.dep = nn.ModuleList(dep)
         self._dep = nn.ModuleList(_dep)
 
     def _make_fc(self, in_planes, out_planes):
@@ -79,10 +80,10 @@ class LiftNet(nn.Module):
 
     def _make_residual(self, block, nblocks, in_planes, out_planes):
         layers = []
-        layers.append( block( in_planes, out_planes) )
+        layers.append(block(in_planes, out_planes))
         self.in_planes = out_planes
         for i in range(1, nblocks):
-            layers.append(block( self.in_planes, out_planes))
+            layers.append(block(self.in_planes, out_planes))
         return nn.Sequential(*layers)
 
     def forward(self, est_hm, est_mask, enc):
@@ -100,13 +101,13 @@ class LiftNet(nn.Module):
             hm3d = self.hm3d[i](y_1)
             hm3d_out = hm3d.view(
                 hm3d.shape[0],  # B
-                self.njoints,   # 21
-                self.z_res[i],   # z_res (32, 64)
-                hm3d.shape[-2], # H=64
+                self.njoints,  # 21
+                self.z_res[i],  # z_res (32, 64)
+                hm3d.shape[-2],  # H=64
                 hm3d.shape[-1]  # W=64
             )
             hm3d_out = hm3d_out / (
-                torch.sum(hm3d_out,dim=[2,3,4],keepdim=True) + 1e-6
+                    torch.sum(hm3d_out, dim=[2, 3, 4], keepdim=True) + 1e-6
             )
             l_hm3d.append(hm3d_out)
 
@@ -115,7 +116,7 @@ class LiftNet(nn.Module):
             est_dep = self.dep[i](y_2)
             l_dep.append(est_dep)
 
-            if i < self.nstacks-1:
+            if i < self.nstacks - 1:
                 _fc1 = self._fc1[i](y_1)
                 _hm3d = self._hm3d[i](hm3d)
 
@@ -149,6 +150,7 @@ def main():
         cprint("{}".format(l_est_dep[i].shape), 'green')
     latent = latent.view(batch_size, -1)
     print(latent.shape)
+
 
 if __name__ == "__main__":
     main()

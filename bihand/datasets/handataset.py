@@ -27,34 +27,35 @@ import bihand.config as cfg
 
 snap_joint_name2id = {w: i for i, w in enumerate(cfg.snap_joint_names)}
 
+
 class HandDataset(torch.utils.data.Dataset):
     def __init__(
-        self,
-        data_split='train',
-        data_root="/disk1/data",
-        subset_name=['rhd', 'stb'],
-        hand_side='right',
-        sigma=2.0,
-        inp_res=256,
-        hm_res=64,
-        dep_res=64,
-        njoints=21,
-        train=True,
-        scale_jittering=0.1,
-        center_jettering=0.1,
-        max_rot=np.pi,
-        hue=0.15,
-        saturation=0.5,
-        contrast=0.5,
-        brightness=0.5,
-        blur_radius=0.5,
+            self,
+            data_split='train',
+            data_root="/disk1/data",
+            subset_name=['rhd', 'stb'],
+            hand_side='right',
+            sigma=2.0,
+            inp_res=256,
+            hm_res=64,
+            dep_res=64,
+            njoints=21,
+            train=True,
+            scale_jittering=0.1,
+            center_jettering=0.1,
+            max_rot=np.pi,
+            hue=0.15,
+            saturation=0.5,
+            contrast=0.5,
+            brightness=0.5,
+            blur_radius=0.5,
     ):
 
-        self.inp_res = inp_res # 256 # network input resolution
-        self.hm_res  = hm_res #64  # out hm resolution
-        self.dep_res = dep_res #64 # out depthmap resolution
-        self.njoints = njoints # total 21 hand parts
-        self.sigma   = sigma
+        self.inp_res = inp_res  # 256 # network input resolution
+        self.hm_res = hm_res  # 64  # out hm resolution
+        self.dep_res = dep_res  # 64 # out depthmap resolution
+        self.njoints = njoints  # total 21 hand parts
+        self.sigma = sigma
         self.max_rot = max_rot
 
         # Training attributes
@@ -69,9 +70,9 @@ class HandDataset(torch.utils.data.Dataset):
         self.saturation = saturation
         self.blur_radius = blur_radius
 
-        self.datasets  = []
+        self.datasets = []
         self.ref_bone_link = (0, 9)  # mid mcp
-        self.joint_root_idx = 9 # root
+        self.joint_root_idx = 9  # root
 
         if 'stb' in subset_name:
             self.stb = STBDataset(
@@ -97,7 +98,7 @@ class HandDataset(torch.utils.data.Dataset):
             self.total_data += len(ds)
 
     def __getitem__(self, index):
-        rng = np.random.RandomState(seed=random.randint(0,1024))
+        rng = np.random.RandomState(seed=random.randint(0, 1024))
         sample, ds = None, None
 
         try:
@@ -106,12 +107,12 @@ class HandDataset(torch.utils.data.Dataset):
             index = np.random.randint(0, len(self))
             sample, ds = self._get_sample(index)
 
-        clr         = sample['clr']
-        dep         = sample['dep']
-        center      = sample['center']
-        scale       = sample['scale']
-        valid_dep   = sample['valid_dep']
-        intr        = sample['intr']
+        clr = sample['clr']
+        dep = sample['dep']
+        center = sample['center']
+        scale = sample['scale']
+        valid_dep = sample['valid_dep']
+        intr = sample['intr']
 
         # Data augmentation
         if self.train:
@@ -119,7 +120,7 @@ class HandDataset(torch.utils.data.Dataset):
                     self.center_jittering
                     * scale
                     * rng.uniform(low=-1, high=1, size=2)
-                )
+            )
             center = center + center_offsets.astype(int)
 
             # Scale jittering
@@ -160,8 +161,8 @@ class HandDataset(torch.utils.data.Dataset):
 
         joint_root = joint[self.joint_root_idx]
         joint_bone = np.atleast_1d(joint_bone)
-        jointR     = joint - joint_root[np.newaxis,: ]
-        jointRS    = jointR / joint_bone
+        jointR = joint - joint_root[np.newaxis, :]
+        jointRS = jointR / joint_bone
 
         kin_chain = [
             jointRS[i] - jointRS[cfg.SNAP_PARENT[i]]
@@ -204,7 +205,7 @@ class HandDataset(torch.utils.data.Dataset):
         ''' implicit HWC -> CHW, 255 -> 1 '''
         clr = func.to_tensor(clr).float()
         ''' 0-mean, 1 std,  [0,1] -> [-0.5, 0.5] '''
-        clr = func.normalize(clr, [0.5, 0.5, 0.5], [1, 1, 1] )
+        clr = func.normalize(clr, [0.5, 0.5, 0.5], [1, 1, 1])
 
         ''' prepare dep image if has '''
         if valid_dep and dep is not None:
@@ -213,7 +214,7 @@ class HandDataset(torch.utils.data.Dataset):
             )
             dep = dep.crop((0, 0, self.inp_res, self.inp_res))
             ''' to float array '''
-            dep = ds.norm_dep_img(dep, joint_z=joint[:,2])
+            dep = ds.norm_dep_img(dep, joint_z=joint[:, 2])
             dep = cv2.resize(dep, (self.dep_res, self.dep_res))
         else:
             dep = np.zeros(
@@ -222,43 +223,41 @@ class HandDataset(torch.utils.data.Dataset):
 
         ''' prepare mask '''
         mask = dep.copy()
-        np.putmask(mask, mask>1e-2, 1.0)
-        np.putmask(mask, mask<=1e-2, 0.0)
-
+        np.putmask(mask, mask > 1e-2, 1.0)
+        np.putmask(mask, mask <= 1e-2, 0.0)
 
         ''' Generate GT Gussian hm and hm veil '''
         hm = np.zeros(
             (self.njoints, self.hm_res, self.hm_res),
             dtype='float32'
-        ) #(CHW)
+        )  # (CHW)
         hm_veil = np.ones(self.njoints, dtype='float32')
-        for i in range(self.njoints) :
-            kp =(
-                (kp2d[i] / self.inp_res) * self.hm_res
+        for i in range(self.njoints):
+            kp = (
+                    (kp2d[i] / self.inp_res) * self.hm_res
             ).astype(np.int32)  # kp uv: [0~256] -> [0~64]
-            hm[i], aval = hmutils.gen_heatmap( hm[i], kp, self.sigma)
+            hm[i], aval = hmutils.gen_heatmap(hm[i], kp, self.sigma)
             hm_veil[i] *= aval
 
         ''' prepare veil to selected zeros invalid item'''
         dep_veil = np.array([valid_dep], dtype='float32')
 
         ## to torch tensor
-        clr         = clr
-        dep         = torch.from_numpy(dep).float()
-        mask        = torch.from_numpy(mask).float()
-        hm          = torch.from_numpy(hm).float()
-        hm_veil     = torch.from_numpy(hm_veil).float()
-        intr        = torch.from_numpy(new_intr).float()
-        kp2d        = torch.from_numpy(kp2d).float()
-        joint       = torch.from_numpy(joint).float()
-        jointR      = torch.from_numpy(jointR).float()
-        jointRS     = torch.from_numpy(jointRS).float()
-        kin_chain   = torch.from_numpy(kin_chain).float()
-        kin_len     = torch.from_numpy(kin_len).float()
-        joint_root  = torch.from_numpy(joint_root).float()
+        clr = clr
+        dep = torch.from_numpy(dep).float()
+        mask = torch.from_numpy(mask).float()
+        hm = torch.from_numpy(hm).float()
+        hm_veil = torch.from_numpy(hm_veil).float()
+        intr = torch.from_numpy(new_intr).float()
+        kp2d = torch.from_numpy(kp2d).float()
+        joint = torch.from_numpy(joint).float()
+        jointR = torch.from_numpy(jointR).float()
+        jointRS = torch.from_numpy(jointRS).float()
+        kin_chain = torch.from_numpy(kin_chain).float()
+        kin_len = torch.from_numpy(kin_len).float()
+        joint_root = torch.from_numpy(joint_root).float()
         joint_bone = torch.from_numpy(joint_bone).float()
-        dep_veil    = torch.from_numpy(dep_veil).float()
-
+        dep_veil = torch.from_numpy(dep_veil).float()
 
         ## Meta info
         """
@@ -274,25 +273,24 @@ class HandDataset(torch.utils.data.Dataset):
         """
         metas = {
             'index': index,
-            'clr':clr,
-            'dep':dep,
-            'mask':mask,
-            'hm':hm,
-            'hm_veil':hm_veil,
+            'clr': clr,
+            'dep': dep,
+            'mask': mask,
+            'hm': hm,
+            'hm_veil': hm_veil,
             'kp2d': kp2d,
-            'intr' : intr,
+            'intr': intr,
             'joint': joint,
-            'jointR':jointR,
-            'jointRS':jointRS,
-            'kin_chain':kin_chain,
-            'kin_len':kin_len,
-            'joint_root':joint_root,
-            'joint_bone':joint_bone,
+            'jointR': jointR,
+            'jointRS': jointRS,
+            'kin_chain': kin_chain,
+            'kin_len': kin_len,
+            'joint_root': joint_root,
+            'joint_bone': joint_bone,
             'dep_veil': dep_veil,
         }
 
         return metas
-
 
     def _get_sample(self, index):
         base = 0
@@ -306,11 +304,5 @@ class HandDataset(torch.utils.data.Dataset):
                 base += len(ds)
         return sample, dataset
 
-
     def __len__(self):
         return self.total_data
-
-
-
-
-

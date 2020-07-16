@@ -12,6 +12,7 @@ import torchvision
 import bihand.utils.func as func
 import bihand.config as cfg
 
+
 def get_color_params(brightness=0, contrast=0, saturation=0, hue=0):
     if brightness > 0:
         brightness_factor = random.uniform(
@@ -69,7 +70,7 @@ def batch_with_dep(clrs, deps):
         clrs = (clrs * 255).astype(np.uint8)
     assert len(deps.shape) == 4, "deps should have shape (B, 1, H, W)"
     deps = func.to_numpy(deps)
-    deps = deps.swapaxes(1,2).swapaxes(2,3)
+    deps = deps.swapaxes(1, 2).swapaxes(2, 3)
     deps = deps.repeat(3, axis=3)
     if deps.dtype is not np.uint8:
         deps = (deps * 255).astype(np.uint8)
@@ -83,7 +84,7 @@ def batch_with_dep(clrs, deps):
     batch = []
     for i in range(16):
         if i >= batch_size:
-            batch.append(np.zeros((64,64,3)).astype(np.uint8))
+            batch.append(np.zeros((64, 64, 3)).astype(np.uint8))
             continue
         clr = clrs[i]
         clr = cv2.resize(clr, (64, 64))
@@ -93,12 +94,12 @@ def batch_with_dep(clrs, deps):
 
     resu = []
     for i in range(4):
-        resu.append(np.concatenate(batch[i*4: i*4+4], axis=1))
+        resu.append(np.concatenate(batch[i * 4: i * 4 + 4], axis=1))
     resu = np.concatenate(resu)
     return resu
 
-def batch_with_joint(clrs, uvds):
 
+def batch_with_joint(clrs, uvds):
     clrs = func.to_numpy(clrs)
     if clrs.dtype is not np.uint8:
         clrs = (clrs * 255).astype(np.uint8)
@@ -109,18 +110,19 @@ def batch_with_joint(clrs, uvds):
     batch = []
     for i in range(16):
         if i >= batch_size:
-            batch.append(np.zeros((256,256,3)).astype(np.uint8))
+            batch.append(np.zeros((256, 256, 3)).astype(np.uint8))
             continue
         clr = clrs[i]
-        uv = (np.array(uvds[i][:,:2]) * clr.shape[0]).astype(np.uint8) # (256)
+        uv = (np.array(uvds[i][:, :2]) * clr.shape[0]).astype(np.uint8)  # (256)
         clr = draw_hand_skeloten(clr, uv, cfg.SNAP_BONES)
         batch.append(clr)
 
     resu = []
     for i in range(4):
-        resu.append(np.concatenate(batch[i*4: i*4+4], axis=1))
+        resu.append(np.concatenate(batch[i * 4: i * 4 + 4], axis=1))
     resu = np.concatenate(resu)
     return resu
+
 
 def draw_hand_skeloten(clr, uv, bone_links, colors=cfg.JOINT_COLORS):
     for i in range(len(bone_links)):
@@ -128,15 +130,16 @@ def draw_hand_skeloten(clr, uv, bone_links, colors=cfg.JOINT_COLORS):
         for j in bone:
             cv2.circle(clr, tuple(uv[j]), 4, colors[i], -1)
         for j, nj in zip(bone[:-1], bone[1:]):
-            cv2.line(clr,tuple(uv[j]),tuple(uv[nj]),colors[i],2)
+            cv2.line(clr, tuple(uv[j]), tuple(uv[nj]), colors[i], 2)
     return clr
 
+
 def batch_with_heatmap(
-    inputs,
-    heatmaps,
-    num_rows=2,
-    parts_to_show=None,
-    n_in_batch=1,
+        inputs,
+        heatmaps,
+        num_rows=2,
+        parts_to_show=None,
+        n_in_batch=1,
 ):
     # inputs = func.to_numpy(inputs * 255)  # 0~1 -> 0 ~255
     heatmaps = func.to_numpy(heatmaps)
@@ -153,6 +156,7 @@ def batch_with_heatmap(
         )
     resu = np.concatenate(batch_img)
     return resu
+
 
 def sample_with_heatmap(img, heatmap, num_rows=2, parts_to_show=None):
     if parts_to_show is None:
@@ -182,14 +186,16 @@ def sample_with_heatmap(img, heatmap, num_rows=2, parts_to_show=None):
 
     return full_img
 
+
 def color_heatmap(x):
-    color = np.zeros((x.shape[0],x.shape[1],3))
-    color[:,:,0] = gauss(x, .5, .6, .2) + gauss(x, 1, .8, .3)
-    color[:,:,1] = gauss(x, 1, .5, .3)
-    color[:,:,2] = gauss(x, 1, .2, .3)
+    color = np.zeros((x.shape[0], x.shape[1], 3))
+    color[:, :, 0] = gauss(x, .5, .6, .2) + gauss(x, 1, .8, .3)
+    color[:, :, 1] = gauss(x, 1, .5, .3)
+    color[:, :, 2] = gauss(x, 1, .2, .3)
     color[color > 1] = 1
     color = (color * 255).astype(np.uint8)
     return color
 
+
 def gauss(x, a, b, c, d=0):
-    return a * np.exp(-(x - b)**2 / (2 * c**2)) + d
+    return a * np.exp(-(x - b) ** 2 / (2 * c ** 2)) + d

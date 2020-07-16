@@ -25,17 +25,16 @@ from bihand.utils.eval.zimeval import EvalUtil
 from bihand.datasets.handataset import HandDataset
 
 
-
 def main(args):
     if (
-        not args.fine_tune
-        or not args.fine_tune in ['rhd', 'stb']
+            not args.fine_tune
+            or not args.fine_tune in ['rhd', 'stb']
     ):
         raise Exception('expect --fine_tune in [rhd|stb], got {}'
                         .format(args.fine_tune))
     if (
-        not args.data_split
-        or not args.data_split in ['train', 'test']
+            not args.data_split
+            or not args.data_split in ['train', 'test']
     ):
         raise Exception('expect --data_split in [train|test], got {}'
                         .format(args.data_split))
@@ -62,7 +61,7 @@ def main(args):
     criterion = {}
 
     print("\nCREATE DATASET")
-    print(colored(args.datasets, 'yellow',  attrs=['bold']),
+    print(colored(args.datasets, 'yellow', attrs=['bold']),
           colored(args.data_split, 'blue', attrs=['bold']),
           colored('is_train:{}'.format(is_train), 'red', attrs=['bold']))
 
@@ -104,7 +103,7 @@ def main(args):
         all_save_at.append(save_at)
 
     # merge all temp files
-    allJointGt_, allJointImpl_= [], []
+    allJointGt_, allJointImpl_ = [], []
     for save_at in all_save_at:
         with open(save_at, 'rb') as fid:
             raw = dict(pickle.load(fid))
@@ -113,10 +112,10 @@ def main(args):
         allJointImpl_.append(raw['jointImpl_'])
 
     allJointGt_ = np.concatenate(allJointGt_, axis=0)
-    allJointImpl_ = np.concatenate(allJointImpl_,axis=0)
+    allJointImpl_ = np.concatenate(allJointImpl_, axis=0)
     sikdata = {
         'jointGt_': allJointGt_,
-        'jointImpl_':allJointImpl_
+        'jointImpl_': allJointImpl_
     }
     sikdata_at = os.path.join(
         args.sik_genpath,
@@ -135,44 +134,43 @@ def main(args):
     # delete intermediate outputs
     for save_at in all_save_at:
         os.remove(save_at)
-    cprint('All Done', 'yellow',attrs=['bold'])
-    return 0 # end of main
-
+    cprint('All Done', 'yellow', attrs=['bold'])
+    return 0  # end of main
 
 
 def one_forward_pass(metas, model, criterion, args, train=True):
     ''' prepare infos '''
-    joint_root   = metas['joint_root'].to(device, non_blocking=True) # (B, 3)
-    joint_bone   = metas['joint_bone'].to(device, non_blocking=True) # (B, 1)
-    intr         = metas['intr'].to(device, non_blocking=True)
-    hm_veil      = metas['hm_veil'].to(device, non_blocking=True)
-    dep_veil     = metas['dep_veil'].to(device, non_blocking=True) # (B, 1)
-    ndep_valid   = torch.sum(dep_veil).item()
+    joint_root = metas['joint_root'].to(device, non_blocking=True)  # (B, 3)
+    joint_bone = metas['joint_bone'].to(device, non_blocking=True)  # (B, 1)
+    intr = metas['intr'].to(device, non_blocking=True)
+    hm_veil = metas['hm_veil'].to(device, non_blocking=True)
+    dep_veil = metas['dep_veil'].to(device, non_blocking=True)  # (B, 1)
+    ndep_valid = torch.sum(dep_veil).item()
     infos = {
-        'joint_root':joint_root,
-        'intr':intr,
-        'joint_bone':joint_bone,
-        'hm_veil':hm_veil,
-        'dep_veil':dep_veil,
-        'batch_size':joint_root.shape[0],
-        'ndep_valid':ndep_valid,
+        'joint_root': joint_root,
+        'intr': intr,
+        'joint_bone': joint_bone,
+        'hm_veil': hm_veil,
+        'dep_veil': dep_veil,
+        'batch_size': joint_root.shape[0],
+        'ndep_valid': ndep_valid,
     }
     ''' prepare targets '''
-    clr     = metas['clr'].to(device, non_blocking=True)
-    hm      = metas['hm'].to(device, non_blocking=True)
-    dep     = metas['dep'].to(device, non_blocking=True) # (B, 64, 64)
-    kp2d    = metas['kp2d'].to(device, non_blocking=True)
-    joint   = metas['joint'].to(device, non_blocking=True)  # (B, 21, 3)
-    jointR  = metas['jointR'].to(device, non_blocking=True)
-    mask    = metas['mask'].to(device, non_blocking=True)  # (B, 64, 64)
+    clr = metas['clr'].to(device, non_blocking=True)
+    hm = metas['hm'].to(device, non_blocking=True)
+    dep = metas['dep'].to(device, non_blocking=True)  # (B, 64, 64)
+    kp2d = metas['kp2d'].to(device, non_blocking=True)
+    joint = metas['joint'].to(device, non_blocking=True)  # (B, 21, 3)
+    jointR = metas['jointR'].to(device, non_blocking=True)
+    mask = metas['mask'].to(device, non_blocking=True)  # (B, 64, 64)
     targets = {
-        'clr':clr,
-        'hm':hm,
-        'joint':joint,
-        'kp2d':kp2d,
-        'jointR':jointR,
-        'dep':dep,
-        'mask':mask,
+        'clr': clr,
+        'hm': hm,
+        'joint': joint,
+        'kp2d': kp2d,
+        'jointR': jointR,
+        'dep': dep,
+        'mask': mask,
     }
     ''' ----------------  Forward Pass  ---------------- '''
     results = model(clr, infos)
@@ -197,7 +195,7 @@ def validate(val_loader, model, criterion, args, stop=-1):
                 metas, model, criterion, args=None, train=False
             )
             joint_root = targets['joint_root'].unsqueeze(1)  # (B, 1, 3)
-            predjoint = results['l_joint'][-1]  #(B 21 3)
+            predjoint = results['l_joint'][-1]  # (B 21 3)
             predjointR = predjoint - joint_root
             predjointR = np.array(predjointR.detach().cpu())
 
@@ -212,7 +210,7 @@ def validate(val_loader, model, criterion, args, stop=-1):
             pck20 = evaluator.get_pck_all(20)
             pck30 = evaluator.get_pck_all(30)
             pck40 = evaluator.get_pck_all(40)
-            bar.suffix  = (
+            bar.suffix = (
                 '({batch}/{size}) '
                 't: {total:}s | '
                 'eta:{eta:}s | '
@@ -220,13 +218,13 @@ def validate(val_loader, model, criterion, args, stop=-1):
                 'pck30avg: {pck30:.3f} | '
                 'pck40avg: {pck40:.3f} | '
             ).format(
-                batch = i + 1,
-                size = len(val_loader),
-                total = bar.elapsed_td,
-                eta   = bar.eta_td,
-                pck20 = pck20,
-                pck30 = pck30,
-                pck40 = pck40,
+                batch=i + 1,
+                size=len(val_loader),
+                total=bar.elapsed_td,
+                eta=bar.eta_td,
+                pck20=pck20,
+                pck30=pck30,
+                pck40=pck40,
             )
             bar.next()
     bar.finish()
@@ -242,20 +240,20 @@ def validate(val_loader, model, criterion, args, stop=-1):
     jointGt_ = np.concatenate(jointGt_, axis=0)
     jointImpl_ = np.concatenate(jointImpl_, axis=0)
     saving = {
-        'jointGt_':jointGt_,
-        'jointImpl_':jointImpl_
+        'jointGt_': jointGt_,
+        'jointImpl_': jointImpl_
     }
     return saving
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='PyTorch Train 3d-Hand-Circle')
+    parser = argparse.ArgumentParser(description='PyTorch Gen SIKdata Offline')
     # Dataset setting
     parser.add_argument(
         '-dr',
         '--data_root',
         type=str,
-        default='/media/sirius/Lixin213G/Dataset',
+        default='data',
         help='dataset root directory'
     )
     parser.add_argument(
@@ -269,7 +267,7 @@ if __name__ == '__main__':
         '--fine_tune',
         type=str,
         default='',
-        help='fine tune dataset. should in: [rhd|stb|freihand]'
+        help='fine tune dataset. should in: [rhd|stb]'
     )
     parser.add_argument(
         '--data_split',
@@ -280,10 +278,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '--sik_genpath',
         type=str,
-        default='data/SIK-online',
-        help='path to save generated sik-online data'
+        default='data/SIK-offline',
+        help='path to save generated sik-offline data'
     )
-
 
     # Model Structure
     ## hourglass:
@@ -309,14 +306,14 @@ if __name__ == '__main__':
         default=21,
         type=int,
         metavar='N',
-        help='Number of heatmaps calsses (hand joints) to predict in the hourglass'
+        help='Number of heatmaps classes (hand joints) to predict in the hourglass'
     )
 
     # Miscs
     parser.add_argument(
         '-ckp',
         '--checkpoint',
-        default='/home/sirius/Documents/BiHand/checkpoints',
+        default='checkpoints',
         type=str,
         metavar='PATH',
         help='path to save checkpoint (default: checkpoint)'
@@ -337,7 +334,7 @@ if __name__ == '__main__':
         help='number of total epochs to run'
     )
     parser.add_argument(
-        '-b','--train_batch',
+        '-b', '--train_batch',
         default=32,
         type=int,
         metavar='N',

@@ -26,7 +26,7 @@ class MeshRenderer(object):
     def __init__(self,
                  mesh_faces,
                  img_size=256,
-                 flength=500.):  #822.79041):  #
+                 flength=500.):  # 822.79041):  #
         self.faces = mesh_faces
         self.w = img_size
         self.h = img_size
@@ -54,7 +54,6 @@ class MeshRenderer(object):
             h = self.h
             w = self.w
 
-
         dist = np.zeros(5)
         dist = dist.flatten()
         M = np.eye(4)
@@ -63,7 +62,7 @@ class MeshRenderer(object):
         if R is None:
             R = M[:3, :3]
         ax, angle = t3d.axangles.mat2axangle(R)
-        rt = ax*angle
+        rt = ax * angle
         rt = rt.flatten()
         t = M[:3, 3]
 
@@ -77,10 +76,9 @@ class MeshRenderer(object):
         pp = np.array([cam_intrinsics[0, 2], cam_intrinsics[1, 2]])
         f = np.array([cam_intrinsics[0, 0], cam_intrinsics[1, 1]])
 
-
         use_cam = ProjectPoints(
             rt=rt,
-            t=t, # camera translation
+            t=t,  # camera translation
             f=f,  # focal lengths
             c=pp,  # camera center (principal point)
             k=dist
@@ -146,7 +144,6 @@ def _create_renderer(w=640,
                      k=None,
                      near=.5,
                      far=10.):
-
     f = np.array([w, w]) / 2. if f is None else f
     c = np.array([w, h]) / 2. if c is None else c
     k = np.zeros(5) if k is None else k
@@ -285,6 +282,7 @@ def get_original(proc_param, verts, cam, joints, img_size):
     kp_original = (joints + proc_param['start_pt'] - margin) * undo_scale
 
     return cam_for_render, vert_shifted, kp_original
+
 
 def draw_text(input_image, content):
     """

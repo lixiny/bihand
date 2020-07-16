@@ -25,10 +25,11 @@ from bihand.utils.eval.zimeval import EvalUtil
 from bihand.datasets.handataset import HandDataset
 from bihand.vis.drawer import HandDrawer
 
+
 def main(args):
     if (
-        not args.fine_tune
-        or not args.fine_tune in ['rhd', 'stb']
+            not args.fine_tune
+            or not args.fine_tune in ['rhd', 'stb']
     ):
         raise Exception('expect --fine_tune in [rhd|stb], got {}'
                         .format(args.fine_tune))
@@ -38,7 +39,7 @@ def main(args):
         os.makedirs(args.checkpoint)
     print("\nCREATE NETWORK")
     model = models.NetBiHand(
-        net_modules=['seed','lift','sik'],
+        net_modules=['seed', 'lift', 'sik'],
         njoints=args.njoints,
         inp_res=256,
         out_hm_res=64,
@@ -133,11 +134,11 @@ def validate(val_loader, model, vis=False):
     with torch.no_grad():
         for i, metas in enumerate(val_loader):
             results, targets = one_forward_pass(metas, model)
-            pred_jointRS = results['jointRS'] # B, 21, 3
+            pred_jointRS = results['jointRS']  # B, 21, 3
             targ_joint = targets['joint']  # B, 21, 3
             joint_bone = targets['joint_bone'].unsqueeze(1)  # B, 21, 1
             joint_root = targets['joint_root'].unsqueeze(1)  # B, 21, 3
-            pred_joint = pred_jointRS * joint_bone + joint_root # B, 21, 3
+            pred_joint = pred_jointRS * joint_bone + joint_root  # B, 21, 3
 
             # quantitative
             for targj, predj in zip(targ_joint, pred_joint):
@@ -161,7 +162,7 @@ def validate(val_loader, model, vis=False):
             bar.next()
 
             ## visualize
-            if vis: # little bit time comsuming
+            if vis:  # little bit time comsuming
                 clr = targets['clr'].detach().cpu()
                 uvd = handutils.xyz2uvd(
                     pred_joint, targets['joint_root'], targets['joint_bone'],
@@ -170,8 +171,8 @@ def validate(val_loader, model, vis=False):
                 uv = uvd[:, :, :2] * clr.shape[-1]
 
                 vertsRS = results['vertsRS'].detach().cpu()
-                mean_bone_len = torch.Tensor([0.1]) # 0.1 m
-                fixed_root = torch.Tensor([0.0, 0.0, 0.5]) # 0.5 m
+                mean_bone_len = torch.Tensor([0.1])  # 0.1 m
+                fixed_root = torch.Tensor([0.0, 0.0, 0.5])  # 0.5 m
                 verts = vertsRS * mean_bone_len + fixed_root
                 drawer.feed(clr, verts, uv)
 

@@ -26,14 +26,14 @@ class HandDrawer(threading.Thread):
         self.exitFlag = 0
         self.drawingQueue = Queue(maxsize=20)
         self.fakeIntr = np.array([
-            [reslu*2, 0, reslu/2],
-            [0, reslu*2, reslu/2],
+            [reslu * 2, 0, reslu / 2],
+            [0, reslu * 2, reslu / 2],
             [0, 0, 1]
         ])
 
     def run(self):
         backg = np.ones((self.reslu, self.reslu, 3)) * 255
-        while(True):
+        while (True):
             if self.exitFlag: break
             if self.drawingQueue.empty():
                 time.sleep(0.1)
@@ -50,7 +50,6 @@ class HandDrawer(threading.Thread):
             cv2.waitKey(1)
         print("Hand Drawer finished")
 
-
     def feed(self, clr, verts, uv):
         clr = func.batch_denormalize(
             clr, [0.5, 0.5, 0.5], [1, 1, 1]
@@ -62,7 +61,7 @@ class HandDrawer(threading.Thread):
         uv = func.to_numpy(uv)
         verts = func.to_numpy(verts)
 
-        for i in range(clr.shape[0]): # batch_size
+        for i in range(clr.shape[0]):  # batch_size
             drawing = {
                 'verts': verts[i],
                 'clr': clr[i],
@@ -73,18 +72,17 @@ class HandDrawer(threading.Thread):
     def set_stop(self):
         self.exitFlag = 1
 
-
     def draw_skeleton(self, clr, uv):
         clr = imutils.draw_hand_skeloten(
-            clr[...,::-1].copy(),  uv,  cfg.SNAP_BONES,  cfg.JOINT_COLORS
+            clr[..., ::-1].copy(), uv, cfg.SNAP_BONES, cfg.JOINT_COLORS
         )
         if clr.shape[0] != self.reslu:
-            img = cv2.resize(clr, (self.reslu,self.reslu))
+            img = cv2.resize(clr, (self.reslu, self.reslu))
         return clr
 
-    def draw_verts(self,verts, K, img):
+    def draw_verts(self, verts, K, img):
         if img.shape[0] != self.reslu:
-            img = cv2.resize(img, (self.reslu,self.reslu))
-        resu = self.rend(verts, K ,img)
-        resu = np.concatenate((resu[:,:,2:3],resu[:,:,1:2],resu[:,:,0:1]),2)
+            img = cv2.resize(img, (self.reslu, self.reslu))
+        resu = self.rend(verts, K, img)
+        resu = np.concatenate((resu[:, :, 2:3], resu[:, :, 1:2], resu[:, :, 0:1]), 2)
         return resu
