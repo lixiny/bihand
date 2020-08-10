@@ -202,7 +202,7 @@ def transform_img(img, affine_trans, res):
     )
     return img
 
-
+##### Original from Obman (buggy) #####
 # def get_affine_transform(center, scale, res, rot=0):
 #     rot_mat = np.zeros((3, 3))
 #     sn, cs = np.sin(rot), np.cos(rot)

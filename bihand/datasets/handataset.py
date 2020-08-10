@@ -141,7 +141,11 @@ class HandDataset(torch.utils.data.Dataset):
         ]).astype(np.float32)
 
         affinetrans, post_rot_trans = handutils.get_affine_transform(
-            center, scale, [self.inp_res, self.inp_res], rot=rot
+            center=center,
+            scale=scale,
+            optical_center=[intr[0, 2], intr[1, 2]],  # (cx, cy)print(intr[0, 0])
+            out_res=[self.inp_res, self.inp_res],
+            rot=rot
         )
 
         ''' prepare kp2d '''
@@ -175,15 +179,7 @@ class HandDataset(torch.utils.data.Dataset):
         kin_chain = kin_chain / kin_len
 
         ''' prepare intr '''
-        if self.train:
-            camparam = handutils.gen_cam_param(joint, kp2d, mode='persp')
-            new_intr = np.array([
-                [camparam[0], 0.0, camparam[2]],
-                [0.0, camparam[1], camparam[3]],
-                [0.0, 0.0, 1.0],
-            ], dtype=np.float32)  # (3,3)
-        else:
-            new_intr = post_rot_trans.dot(intr)
+        new_intr = post_rot_trans.dot(intr)
 
         ''' prepare clr image '''
         if self.train:
