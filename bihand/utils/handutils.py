@@ -203,35 +203,67 @@ def transform_img(img, affine_trans, res):
     return img
 
 
-def get_affine_transform(center, scale, res, rot=0):
+# def get_affine_transform(center, scale, res, rot=0):
+#     rot_mat = np.zeros((3, 3))
+#     sn, cs = np.sin(rot), np.cos(rot)
+#     rot_mat[0, :2] = [cs, -sn]
+#     rot_mat[1, :2] = [sn, cs]
+#     rot_mat[2, 2] = 1
+#     # Rotate center to obtain coordinate of center in rotated image
+#     origin_rot_center = rot_mat.dot(center.tolist() + [
+#         1,
+#     ])[:2]
+#     # Get center for transform with verts rotated around optical axis
+#     # (through pixel center, smthg like 128, 128 in pixels and 0,0 in 3d world)
+#     # For this, rotate the center but around center of image (vs 0,0 in pixel space)
+#     t_mat = np.eye(3)
+#     t_mat[0, 2] = -res[1] / 2
+#     t_mat[1, 2] = -res[0] / 2
+#     t_inv = t_mat.copy()
+#     t_inv[:2, 2] *= -1
+#     transformed_center = t_inv.dot(rot_mat).dot(t_mat).dot(center.tolist() + [
+#         1,
+#     ])
+#     post_rot_trans = get_affine_trans_no_rot(origin_rot_center, scale, res)
+#     total_trans = post_rot_trans.dot(rot_mat)
+#     # check_t = get_affine_transform_bak(center, scale, res, rot)
+#     # print(total_trans, check_t)
+#     affinetrans_post_rot = get_affine_trans_no_rot(transformed_center[:2],
+#                                                    scale, res)
+#     return total_trans.astype(np.float32), affinetrans_post_rot.astype(
+#         np.float32)
+
+
+def get_affine_transform(center, scale, optical_center, out_res, rot=0):
     rot_mat = np.zeros((3, 3))
     sn, cs = np.sin(rot), np.cos(rot)
     rot_mat[0, :2] = [cs, -sn]
     rot_mat[1, :2] = [sn, cs]
     rot_mat[2, 2] = 1
     # Rotate center to obtain coordinate of center in rotated image
-    origin_rot_center = rot_mat.dot(center.tolist() + [
-        1,
-    ])[:2]
+    origin_rot_center = rot_mat.dot(center.tolist() + [1])[:2]
     # Get center for transform with verts rotated around optical axis
     # (through pixel center, smthg like 128, 128 in pixels and 0,0 in 3d world)
     # For this, rotate the center but around center of image (vs 0,0 in pixel space)
     t_mat = np.eye(3)
-    t_mat[0, 2] = -res[1] / 2
-    t_mat[1, 2] = -res[0] / 2
+    t_mat[0, 2] = - optical_center[0]
+    t_mat[1, 2] = - optical_center[1]
     t_inv = t_mat.copy()
     t_inv[:2, 2] *= -1
-    transformed_center = t_inv.dot(rot_mat).dot(t_mat).dot(center.tolist() + [
-        1,
-    ])
-    post_rot_trans = get_affine_trans_no_rot(origin_rot_center, scale, res)
+    transformed_center = (
+        t_inv.dot(rot_mat).dot(t_mat).dot(center.tolist() + [1])
+    )
+    post_rot_trans = get_affine_trans_no_rot(origin_rot_center, scale, out_res)
     total_trans = post_rot_trans.dot(rot_mat)
     # check_t = get_affine_transform_bak(center, scale, res, rot)
     # print(total_trans, check_t)
-    affinetrans_post_rot = get_affine_trans_no_rot(transformed_center[:2],
-                                                   scale, res)
-    return total_trans.astype(np.float32), affinetrans_post_rot.astype(
-        np.float32)
+    affinetrans_post_rot = get_affine_trans_no_rot(
+        transformed_center[:2], scale, out_res
+    )
+    return (
+        total_trans.astype(np.float32),
+        affinetrans_post_rot.astype(np.float32),
+    )
 
 
 def get_affine_trans_no_rot(center, scale, res):

@@ -113,4 +113,4 @@ JOINT_COLORS = (
     (0, 0, 230),
 )
 
-DEFAULT_CACHE_DIR = '~/.cache'
+DEFAULT_CACHE_DIR = 'data/.cache'

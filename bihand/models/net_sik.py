@@ -95,7 +95,7 @@ class SIKNet(nn.Module):
         so3 = quatutils.quaternion_to_angle_axis(quatN)
         so3 = so3.reshape(batch_size, -1)
 
-        vertsR, jointR, _ = self.mano_layer(
+        vertsR, jointR = self.mano_layer(
             th_pose_coeffs=so3,
             th_betas=beta
         )
