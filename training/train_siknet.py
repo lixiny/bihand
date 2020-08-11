@@ -1,4 +1,11 @@
-from __future__ import print_function, absolute_import
+from bihand.datasets.handataset import HandDataset
+from bihand.utils.eval.zimeval import EvalUtil
+from bihand.utils.eval.evalutils import AverageMeter
+from progress.progress.bar import Bar
+from termcolor import colored, cprint
+import bihand.utils.misc as misc
+import bihand.losses as losses
+import bihand.models as models
 
 import os
 import argparse
@@ -19,17 +26,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
 # There is BN issue for early version of PyTorch
 # see https://github.com/bearpaw/pytorch-pose/issues/33
-
-
-import bihand.models as models
-import bihand.losses as losses
-import bihand.utils.misc as misc
-
-from termcolor import colored, cprint
-from progress.progress.bar import Bar
-from bihand.utils.eval.evalutils import AverageMeter
-from bihand.utils.eval.zimeval import EvalUtil
-from bihand.datasets.handataset import HandDataset
 
 
 def main(args):
@@ -337,7 +333,8 @@ def one_fowrard_pass(metas, model, criterion, args, train=True):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='PyTorch Train BiHand Stage 3: SIKNet (with SeedNet, LiftNet Freeze)')
+    parser = argparse.ArgumentParser(
+        description='PyTorch Train BiHand Stage 3: SIKNet (with SeedNet, LiftNet Freeze)')
     # Miscs
     parser.add_argument(
         '-dr',

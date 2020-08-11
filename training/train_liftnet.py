@@ -1,5 +1,14 @@
-from __future__ import print_function, absolute_import
+from bihand.datasets.handataset import HandDataset
+from bihand.utils.eval.zimeval import EvalUtil
+from bihand.utils.eval.evalutils import AverageMeter
+from progress.progress.bar import Bar
+from termcolor import colored, cprint
 
+import bihand.utils.func as func
+import bihand.utils.misc as misc
+import bihand.utils.imgutils as imutils
+import bihand.losses as losses
+import bihand.models as models
 import os
 import argparse
 import time
@@ -16,18 +25,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
 # There is BN issue for early version of PyTorch
 # see https://github.com/bearpaw/pytorch-pose/issues/33
-
-import bihand.models as models
-import bihand.losses as losses
-import bihand.utils.imgutils as imutils
-import bihand.utils.misc as misc
-import bihand.utils.func as func
-
-from termcolor import colored, cprint
-from progress.progress.bar import Bar
-from bihand.utils.eval.evalutils import AverageMeter
-from bihand.utils.eval.zimeval import EvalUtil
-from bihand.datasets.handataset import HandDataset
 
 
 def main(args):
@@ -119,7 +116,7 @@ def main(args):
         )
         for m in model.upstream.liftnet.modules():
             if isinstance(m, torch.nn.Conv2d):
-                torch.nn.init.xavier_uniform_(m.weight)
+                torch.nn.init.kaiming_normal_(m.weight)
 
     for params in model.upstream.seednet.parameters():
         params.requires_grad = False
@@ -329,7 +326,8 @@ def validate(val_loader, model, criterion, args, stop=-1):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='PyTorch Train BiHand Stage 2: LiftNet')
+    parser = argparse.ArgumentParser(
+        description='PyTorch Train BiHand Stage 2: LiftNet')
     # Dataset setting
     parser.add_argument(
         '-dr',
@@ -488,7 +486,8 @@ if __name__ == '__main__':
         '--ups_loss',
         dest='ups_loss',
         action='store_true',
-        help='Calculate upstream loss'
+        help='Calculate upstream loss',
+        default=True
     )
 
     main(parser.parse_args())

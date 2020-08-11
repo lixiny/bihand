@@ -15,7 +15,7 @@ from termcolor import colored, cprint
 import bihand.utils.handutils as handutils
 import bihand.config as cfg
 
-CACHE_HOME = os.path.expanduser(cfg.DEFAULT_CACHE_DIR)  # '~/.cache'
+CACHE_HOME = os.path.expanduser(cfg.DEFAULT_CACHE_DIR)
 
 snap_joint_name2id = {w: i for i, w in enumerate(cfg.snap_joint_names)}
 rhd_joint_name2id = {w: i for i, w in enumerate(cfg.rhd_joints)}

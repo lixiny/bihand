@@ -1,4 +1,16 @@
-import os, sys
+from bihand.datasets.handataset import HandDataset
+from bihand.utils.eval.evalutils import AverageMeter
+from progress.progress.bar import Bar
+from termcolor import colored, cprint
+
+import bihand.utils.func as func
+import bihand.utils.eval.evalutils as evalutils
+import bihand.utils.misc as misc
+import bihand.utils.imgutils as imutils
+import bihand.losses as losses
+import bihand.models as models
+import os
+import sys
 import argparse
 import time
 import numpy as np
@@ -15,18 +27,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
 # There is BN issue for early version of PyTorch
 # see https://github.com/bearpaw/pytorch-pose/issues/33
-
-import bihand.models as models
-import bihand.losses as losses
-import bihand.utils.imgutils as imutils
-import bihand.utils.misc as misc
-import bihand.utils.eval.evalutils as evalutils
-import bihand.utils.func as func
-
-from termcolor import colored, cprint
-from progress.progress.bar import Bar
-from bihand.utils.eval.evalutils import AverageMeter
-from bihand.datasets.handataset import HandDataset
 
 
 def main(args):
@@ -108,7 +108,7 @@ def main(args):
     else:
         for m in model.modules():
             if isinstance(m, torch.nn.Conv2d):
-                torch.nn.init.xavier_uniform_(m.weight)
+                torch.nn.init.kaiming_normal_(m.weight)
 
     if args.evaluate:
         validate(val_loader, model, criterion, args=args)
@@ -301,7 +301,8 @@ def validate(val_loader, model, criterion, args, stop=-1):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='PyTorch Train BiHand Stage 1: SeedNet')
+    parser = argparse.ArgumentParser(
+        description='PyTorch Train BiHand Stage 1: SeedNet')
     # Dataset setting
     parser.add_argument(
         '-dr',
@@ -455,6 +456,7 @@ if __name__ == '__main__':
         dest='ups_loss',
         action='store_true',
         help='Calculate upstream loss'
+        default=True
     )
 
     main(parser.parse_args())

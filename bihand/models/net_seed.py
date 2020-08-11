@@ -1,3 +1,8 @@
+# Copyright (c) Lixin YANG. All Rights Reserved.
+r"""
+Networks for heatmap estimation from RGB images using Hourglass Network
+"Stacked Hourglass Networks for Human Pose Estimation", Alejandro Newell, Kaiyu Yang, Jia Deng, ECCV 2016
+"""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

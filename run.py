@@ -192,7 +192,7 @@ def validate(val_loader, model, vis=False):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='PyTorch Train BiHand')
+    parser = argparse.ArgumentParser(description='PyTorch Test BiHand')
 
     ### Adjustable ###
     parser.add_argument(
@@ -212,8 +212,8 @@ if __name__ == '__main__':
     parser.add_argument(
         '--fine_tune',
         type=str,
-        default='',
-        help='fine tune dataset. should in: [rhd|stb|freihand]'
+        default='stb',
+        help='fine tune dataset. should in: [rhd|stb]'
     )
     parser.add_argument(
         '-ckp',

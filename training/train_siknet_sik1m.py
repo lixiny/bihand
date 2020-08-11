@@ -1,9 +1,16 @@
-from __future__ import print_function, absolute_import
 
+from bihand.utils.eval.zimeval import EvalUtil
+from bihand.utils.eval.evalutils import AverageMeter
+from progress.progress.bar import Bar
+from termcolor import colored, cprint
+
+import bihand.utils.misc as misc
+import bihand.losses as losses
+import bihand.models as models
+import bihand.datasets as datasets
 import os
 import argparse
 import time
-
 import torch
 import torch.utils.data
 import torch.nn.parallel
@@ -15,15 +22,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cudnn.benchmark = True
 # There is BN issue for early version of PyTorch
 # see https://github.com/bearpaw/pytorch-pose/issues/33
-
-import bihand.datasets as datasets
-import bihand.models as models
-import bihand.losses as losses
-import bihand.utils.misc as misc
-from termcolor import colored, cprint
-from progress.progress.bar import Bar
-from bihand.utils.eval.evalutils import AverageMeter
-from bihand.utils.eval.zimeval import EvalUtil
 
 
 def print_args(args):
@@ -296,7 +294,8 @@ def one_forward_pass(metas, model, criterion, args, train=True):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='PyTorch Train SIKNet on SIK1M Synthetic Dataset')
+    parser = argparse.ArgumentParser(
+        description='PyTorch Train SIKNet on SIK1M Synthetic Dataset')
     # Miscs
     parser.add_argument(
         '-ckp',
@@ -367,14 +366,14 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '-b', '--train_batch',
-        default=64,
+        default=1024,
         type=int,
         metavar='N',
         help='train batchsize'
     )
     parser.add_argument(
         '-tb', '--test_batch',
-        default=32,
+        default=512,
         type=int,
         metavar='N',
         help='test batchsize'

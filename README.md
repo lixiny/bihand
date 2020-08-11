@@ -32,16 +32,16 @@ pip install opendr
 
 ## Download and Prepare Datasets
 
-- Create a data_root directory at `/path/to/data_root`
-- Download RHD dataset on the [dataset page](https://lmb.informatik.uni-freiburg.de/resources/datasets/RenderedHandposeDataset.en.html) and extract it in `data_root/RHD`.
+- Create a data directory: `data`
+- Download RHD dataset at the [dataset page](https://lmb.informatik.uni-freiburg.de/resources/datasets/RenderedHandposeDataset.en.html) and extract it in `data/RHD`.
 
-- Download STB dataset on the [dataset page](https://sites.google.com/site/zhjw1988/) and extract it in `data_root/STB`
-- Download STB_supp dataset on [Google Drive](https://drive.google.com/file/d/1uAP2-U_sQkl1Ez4JkaDl01DA-Qiq2PI-/view?usp=sharing) | [Baidu Pan](https://pan.baidu.com/s/1ja23wnTsPPsjLrkE6d8s-w)(`v858`) and merge it into `data_root/STB`.
+- Download STB dataset at the [dataset page](https://sites.google.com/site/zhjw1988/) and extract it in `data/STB`
+- Download `STB_supp` dataset at [Google Drive](https://drive.google.com/file/d/1uAP2-U_sQkl1Ez4JkaDl01DA-Qiq2PI-/view?usp=sharing) or [Baidu Pan](https://pan.baidu.com/s/1ja23wnTsPPsjLrkE6d8s-w)(`v858`) and merge it into `data/STB`.
  (In STB, We generated *aligned* and *segmented* hand depthmap from the original depth image)
 
-Now your `data_root` folder structure should like this:
+Now your `data` folder structure should like this:
 ```
-data_root/
+data/
     RHD/
         RHD_published_v2/
             evaluation/
@@ -99,48 +99,73 @@ BiHand-test/
         └── stb/
             ├── ckp_liftnet_stb.pth.tar
             └── ckp_siknet_stb.pth.tar
+    data/
     ...
 ```
 
-## Launch Demo
+## Launch Demo & Eval
 
-- First, add this into current bash or ~/.bashrc
-`export PYTHONPATH=/path/to/bihand:$PYTHONPATH`
+- First, add this into current bash or `~/.bashrc`:
+```
+export PYTHONPATH=/path/to/bihand:$PYTHONPATH
+```
 
 - to test on RHD dataset:
 ```
-python testing/test_bihand.py \
-    --batch_size 8 --checkpoint checkpoints --data_root /path/to/data_root --fine_tune rhd
+python run.py \
+    --batch_size 8 --fine_tune rhd --checkpoint checkpoints --data_root data
 ```
 - to test on STB dataset:
 ```
-python testing/test_bihand.py \
-    --batch_size 8 --checkpoint checkpoints --data_root /path/to/data_root --fine_tune stb
+python run.py \
+    --batch_size 8 --fine_tune stb --checkpoint checkpoints --data_root data
 ```
 - add `--vis` to visualize:
 
 <img src="assets/stb_demo.gif" width="480">
 
 
+## Training
+By adoptubt the multi-stage training scheme, we ﬁrst train SeedNet for 100 epochs:
+```
+python training/train_seednet.py \
+    --net_modules seed --datasets stb rhd --ups_loss
+```
+and then exploit its outputs to train LiftNet for another 100 epochs:
+```
+python training/train_liftnet.py \
+    --net_modules seed lift --datasets stb rhd --ups_loss
+```
+For SIKNet:
+* We firstly train SIKNet on SIK-1M dataset for 100 epochs.
+
+    Download SIK-1M Dataset at [Google Drive]() or [Baidu Pan](https://pan.baidu.com/s/1WCjo4Q_pLnyxpRhYfowIQQ) (`dc4g`) and extract SIK-1M.zip to `data/SIK-1M/`, then run:
+```
+python training/train_siknet_sik1m.py
+```
+* Then we fine-tune the SIKNet on the predicted 3D joints from the LiftNet.
+```
+# During train_siknet, the params of SeedNet and LiftNet are freezed.
+python training/train_siknet.py --fine_tune stb ##(or rhd)
+```
+
 ## Limitation
 
-Currently the BiHand-test requires camera intrinsics, root depth and bone length as inputs, thus cannot be applied in the wild.
-
-More functionality will be released with the train code.
+Currently the released version of bihand requires camera intrinsics, root depth and bone length as inputs, thus cannot be applied in the wild.
 
 
 
 ## Acknowledgement
 
-- Code of Mano Pytorch Layer in `manopth` was adapted from [manopth](https://github.com/hassony2/manopth), appreciate Yana Hasson.
+- Code of Mano Pytorch Layer in `manopth` was adapted from [manopth](https://github.com/hassony2/manopth).
 
 
-- Code for evaluating the hand PCK and AUC in `bihand/eval/zimeval.py` was adapted from [hand3d](https://github.com/lmb-freiburg/hand3d), appreciate Christian Zimmermann.
+- Code for evaluating the hand PCK and AUC in `bihand/eval/zimeval.py` was adapted from [hand3d](https://github.com/lmb-freiburg/hand3d).
 
-- Code of data augmentation in `bihand/datasets/handataset.py` was adapted from [obman](https://hassony2.github.io/obman), appreciate Yana Hasson agian.
+- Code of data augmentation in `bihand/datasets/handataset.py` was adapted from [obman](https://hassony2.github.io/obman).
 
-- Code of STB datasets `bihand/datasets/stb.py` was adapted from [hand-graph-cnn](https://github.com/3d-hand-shape/hand-graph-cnn), appreciate Liuhao Ge.
+- Code of STB datasets `bihand/datasets/stb.py` was adapted from [hand-graph-cnn](https://github.com/3d-hand-shape/hand-graph-cnn).
 
-- Code of our Bisected Hourglass Network `bihand/models/hourglass.py` was adapted from [pytorch-pose](https://github.com/bearpaw/pytorch-pose), appreciate Wei Yang for original implementation.
+- Code of the original Hourglass Network `bihand/models/hourglass.py` was adapted from [pytorch-pose](https://github.com/bearpaw/pytorch-pose).
 
 
