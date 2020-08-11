@@ -126,7 +126,7 @@ python run.py \
 
 
 ## Training
-By adoptubt the multi-stage training scheme, we ﬁrst train SeedNet for 100 epochs:
+By adopting the multi-stage training scheme, we ﬁrst train SeedNet for 100 epochs:
 ```
 python training/train_seednet.py \
     --net_modules seed --datasets stb rhd --ups_loss
