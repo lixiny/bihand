@@ -139,7 +139,7 @@ python training/train_liftnet.py \
 For SIKNet:
 * We firstly train SIKNet on SIK-1M dataset for 100 epochs.
 
-    Download SIK-1M Dataset at [Google Drive]() or [Baidu Pan](https://pan.baidu.com/s/1WCjo4Q_pLnyxpRhYfowIQQ) (`dc4g`) and extract SIK-1M.zip to `data/SIK-1M/`, then run:
+    Download SIK-1M Dataset at [Google Drive](https://drive.google.com/file/d/1EhOEbr_CcmUVzE3AHssGgAm3ZVhe8IVO/view?usp=sharing) or [Baidu Pan](https://pan.baidu.com/s/1WCjo4Q_pLnyxpRhYfowIQQ) (`dc4g`) and extract SIK-1M.zip to `data/SIK-1M`, then run:
 ```
 python training/train_siknet_sik1m.py
 ```
