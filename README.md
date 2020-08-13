@@ -1,8 +1,7 @@
 
 # BiHand - 3D Hand Mesh Reconstruction
 
-This repo contains model, demo, testing and training codes for paper: "BiHand: Recovering Hand Mesh with Multi-stage Bisected Hourglass Networks"
-Lixin Yang, Jiasen Li, Wenqiang Xu, Yiqun Diao, Cewu Lu
+This repo contains model, demo, training codes for our paper: "BiHand: Recovering Hand Mesh with Multi-stage Bisected Hourglass Networks"([PDF](https://arxiv.org/abs/2008.05079)) (BMVC2020)
 
 <img src="assets/teaser.png">
 
@@ -153,6 +152,19 @@ python training/train_siknet.py --fine_tune stb ##(or rhd)
 
 Currently the released version of bihand requires camera intrinsics, root depth and bone length as inputs, thus cannot be applied in the wild.
 
+
+## Citation  
+If you find this work helpful, please consider citing us:
+```
+@misc{yang2020bihand,
+    title={BiHand: Recovering Hand Mesh with Multi-stage Bisected Hourglass Networks},
+    author={Lixin Yang and Jiasen Li and Wenqiang Xu and Yiqun Diao and Cewu Lu},
+    year={2020},
+    eprint={2008.05079},
+    archivePrefix={arXiv},
+    primaryClass={cs.CV}
+}
+```
 
 
 ## Acknowledgement
