@@ -180,4 +180,4 @@ If you find this work helpful, please consider citing us:
 
 - Code of the original Hourglass Network `bihand/models/hourglass.py` was adapted from [pytorch-pose](https://github.com/bearpaw/pytorch-pose).
 
-
+- Thanks [Yuxiao Zhou](https://github.com/CalciferZh) for helpful discussions and suggestions when solving IK problem. 
