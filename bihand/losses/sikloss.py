@@ -39,7 +39,7 @@ class SIKLoss:
             inv_predquat = quatutils.quaternion_inv(predquat)
             real_part = quatutils.quaternion_mul(
                 targquat, inv_predquat
-            )[..., -1]  # (B, 16)
+            )[..., 0]  # (B, 16)
             cos_loss = torch_f.l1_loss(
                 real_part,
                 torch.ones_like(real_part)

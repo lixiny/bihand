@@ -2,10 +2,9 @@ import torch
 import torch.nn.functional as torch_f
 
 
-def normalize_quaternion(quaternion: torch.Tensor,
-                         eps: float = 1e-12) -> torch.Tensor:
+def normalize_quaternion(quaternion: torch.Tensor, eps: float = 1e-12) -> torch.Tensor:
     r"""Normalizes a quaternion.
-    The quaternion should be in (x, y, z, w) format.
+    The quaternion should be in (w, x, y, z) format.
 
     Args:
         quaternion (torch.Tensor): a tensor containing a quaternion to be
@@ -22,27 +21,24 @@ def normalize_quaternion(quaternion: torch.Tensor,
         tensor([0.7071, 0.0000, 0.7071, 0.0000])
     """
     if not isinstance(quaternion, torch.Tensor):
-        raise TypeError("Input type is not a torch.Tensor. Got {}".format(
-            type(quaternion)))
+        raise TypeError("Input type is not a torch.Tensor. Got {}".format(type(quaternion)))
 
     if not quaternion.shape[-1] == 4:
-        raise ValueError(
-            "Input must be a tensor of shape (*, 4). Got {}".format(
-                quaternion.shape))
+        raise ValueError("Input must be a tensor of shape (*, 4). Got {}".format(quaternion.shape))
     return torch_f.normalize(quaternion, p=2, dim=-1, eps=eps)
 
 
 def quaternion_inv(q):
     """
     inverse quaternion(s) q
-    The quaternion should be in (x, y, z, w) format.
+    The quaternion should be in (w, x, y, z) format.
     Expects  tensors of shape (*, 4), where * denotes any number of dimensions.
     Returns q*r as a tensor of shape (*, 4).
     """
     assert q.shape[-1] == 4
 
-    q_conj = q[..., :3] * -1.0
-    q_conj = torch.cat((q_conj, q[..., 3:]), dim=-1)
+    q_conj = q[..., 1:] * -1.0
+    q_conj = torch.cat((q[..., 0:1], q_conj), dim=-1)
     q_norm = torch.norm(q, dim=-1, keepdim=True)
     return q_conj / q_norm
 
@@ -50,7 +46,7 @@ def quaternion_inv(q):
 def quaternion_mul(q, r):
     """
     Multiply quaternion(s) q with quaternion(s) r.
-    The quaternion should be in (x, y, z, w) format.
+    The quaternion should be in (w, x, y, z) format.
     Expects two equally-sized tensors of shape (*, 4), where * denotes any number of dimensions.
     Returns q*r as a tensor of shape (*, 4).
     """
@@ -63,16 +59,18 @@ def quaternion_mul(q, r):
     # terms; ( * , 4, 4)
     terms = torch.bmm(r.view(-1, 4, 1), q.view(-1, 1, 4))
 
-    w = terms[:, 3, 3] - terms[:, 0, 0] - terms[:, 1, 1] - terms[:, 2, 2]
-    x = terms[:, 3, 0] + terms[:, 0, 3] + terms[:, 1, 2] - terms[:, 2, 1]
-    y = terms[:, 3, 1] - terms[:, 0, 2] + terms[:, 1, 3] + terms[:, 2, 0]
-    z = terms[:, 3, 2] + terms[:, 0, 1] - terms[:, 1, 0] + terms[:, 2, 3]
-    return torch.stack((x, y, z, w), dim=1).view(original_shape)
+    w = terms[:, 0, 0] - terms[:, 1, 1] - terms[:, 2, 2] - terms[:, 3, 3]
+    x = terms[:, 0, 1] + terms[:, 1, 0] + terms[:, 2, 3] - terms[:, 3, 2]
+    y = terms[:, 0, 2] - terms[:, 1, 3] + terms[:, 2, 0] + terms[:, 3, 1]
+    z = terms[:, 0, 3] + terms[:, 1, 2] - terms[:, 2, 1] + terms[:, 3, 0]
+    return torch.stack((w, x, y, z), dim=1).view(original_shape)
 
 
+# source code from https://kornia.readthedocs.io/en/latest/_modules/kornia/geometry/conversions.html
+# Fix bugs in Kornia ( xyzw -> wxyz)
 def quaternion_to_angle_axis(quaternion: torch.Tensor) -> torch.Tensor:
     """Convert quaternion vector to angle axis of rotation.
-    The quaternion should be in (x, y, z, w) format.
+    The quaternion should be in (w, x, y, z) format.
 
     Adapted from ceres C++ library: ceres-solver/include/ceres/rotation.h
 
@@ -91,24 +89,21 @@ def quaternion_to_angle_axis(quaternion: torch.Tensor) -> torch.Tensor:
         >>> angle_axis = kornia.quaternion_to_angle_axis(quaternion)  # Nx3
     """
     if not torch.is_tensor(quaternion):
-        raise TypeError("Input type is not a torch.Tensor. Got {}".format(
-            type(quaternion)))
+        raise TypeError("Input type is not a torch.Tensor. Got {}".format(type(quaternion)))
 
     if not quaternion.shape[-1] == 4:
-        raise ValueError(
-            "Input must be a tensor of shape Nx4 or 4. Got {}".format(
-                quaternion.shape))
+        raise ValueError("Input must be a tensor of shape Nx4 or 4. Got {}".format(quaternion.shape))
     # unpack input and compute conversion
-    q1: torch.Tensor = quaternion[..., 1]
-    q2: torch.Tensor = quaternion[..., 2]
-    q3: torch.Tensor = quaternion[..., 3]
+    q1: torch.Tensor = quaternion[..., 1]  # x
+    q2: torch.Tensor = quaternion[..., 2]  # y
+    q3: torch.Tensor = quaternion[..., 3]  # z
     sin_squared_theta: torch.Tensor = q1 * q1 + q2 * q2 + q3 * q3
 
     sin_theta: torch.Tensor = torch.sqrt(sin_squared_theta)
-    cos_theta: torch.Tensor = quaternion[..., 0]
+    cos_theta: torch.Tensor = quaternion[..., 0]  # w
     two_theta: torch.Tensor = 2.0 * torch.where(
-        cos_theta < 0.0, torch.atan2(-sin_theta, -cos_theta),
-        torch.atan2(sin_theta, cos_theta))
+        cos_theta < 0.0, torch.atan2(-sin_theta, -cos_theta), torch.atan2(sin_theta, cos_theta)
+    )
 
     k_pos: torch.Tensor = two_theta / sin_theta
     k_neg: torch.Tensor = 2.0 * torch.ones_like(sin_theta)
@@ -121,9 +116,11 @@ def quaternion_to_angle_axis(quaternion: torch.Tensor) -> torch.Tensor:
     return angle_axis
 
 
+# source code from https://kornia.readthedocs.io/en/latest/_modules/kornia/geometry/conversions.html
+# Fix bugs in Kornia ( xyzw -> wxyz)
 def angle_axis_to_quaternion(angle_axis: torch.Tensor) -> torch.Tensor:
     r"""Convert an angle axis to a quaternion.
-    The quaternion vector has components in (x, y, z, w) format.
+    The quaternion vector has components in (w, x, y, z) format.
 
     Adapted from ceres C++ library: ceres-solver/include/ceres/rotation.h
 
@@ -142,13 +139,10 @@ def angle_axis_to_quaternion(angle_axis: torch.Tensor) -> torch.Tensor:
         >>> quaternion = kornia.angle_axis_to_quaternion(angle_axis)  # Nx3
     """
     if not torch.is_tensor(angle_axis):
-        raise TypeError("Input type is not a torch.Tensor. Got {}".format(
-            type(angle_axis)))
+        raise TypeError("Input type is not a torch.Tensor. Got {}".format(type(angle_axis)))
 
     if not angle_axis.shape[-1] == 3:
-        raise ValueError(
-            "Input must be a tensor of shape Nx3 or 3. Got {}".format(
-                angle_axis.shape))
+        raise ValueError("Input must be a tensor of shape Nx3 or 3. Got {}".format(angle_axis.shape))
     # unpack input and compute conversion
     a0: torch.Tensor = angle_axis[..., 0:1]
     a1: torch.Tensor = angle_axis[..., 1:2]
@@ -170,4 +164,4 @@ def angle_axis_to_quaternion(angle_axis: torch.Tensor) -> torch.Tensor:
     quaternion[..., 0:1] += a0 * k
     quaternion[..., 1:2] += a1 * k
     quaternion[..., 2:3] += a2 * k
-    return torch.cat([w, quaternion], dim=-1)
+    return torch.cat([w, quaternion], dim=-1)  # wxyz format
