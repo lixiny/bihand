@@ -156,13 +156,11 @@ Currently the released version of bihand requires camera intrinsics, root depth 
 ## Citation  
 If you find this work helpful, please consider citing us:
 ```
-@misc{yang2020bihand,
+@inproceedings{yang2020bihand,
     title={BiHand: Recovering Hand Mesh with Multi-stage Bisected Hourglass Networks},
     author={Lixin Yang and Jiasen Li and Wenqiang Xu and Yiqun Diao and Cewu Lu},
+    booktitle={BMVC},
     year={2020},
-    eprint={2008.05079},
-    archivePrefix={arXiv},
-    primaryClass={cs.CV}
 }
 ```
 
