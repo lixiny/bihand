@@ -1,3 +1,4 @@
+from genericpath import isfile
 from bihand.datasets.handataset import HandDataset
 from bihand.utils.eval.zimeval import EvalUtil
 from bihand.utils.eval.evalutils import AverageMeter
@@ -102,26 +103,23 @@ def main(args):
     )
     print("Total test dataset size: {}".format(len(val_dataset)))
     print("\nLOAD CHECKPOINT")
-    if args.resume or args.evaluate:
-        model.load_checkpoints(
-            ckp_seednet=os.path.join(args.checkpoint,
-                                     'ckp_seednet_all.pth.tar'),
-            ckp_liftnet=os.path.join(args.checkpoint, 'stb',
-                                     'ckp_liftnet_stb.pth.tar'),
-        )
+
+    if not args.frozen_seednet_pth or not isfile(args.frozen_seednet_pth):
+        raise ValueError("No frozen_seednet_pth is provided")
+
+    model.load_checkpoints(ckp_seednet=args.frozen_seednet_pth)
+    for params in model.upstream.seednet.parameters(): # frozen
+        params.requires_grad = False
+
+    if args.resume_liftnet_pth:
+        model.load_checkpoints(ckp_liftnet=args.resume_liftnet_pth,)
     else:
-        model.load_checkpoints(
-            ckp_seednet=os.path.join(args.checkpoint,
-                                     'ckp_seednet_all.pth.tar'),
-        )
         for m in model.upstream.liftnet.modules():
             if isinstance(m, torch.nn.Conv2d):
                 torch.nn.init.kaiming_normal_(m.weight)
 
-    for params in model.upstream.seednet.parameters():
-        params.requires_grad = False
-
-    if args.evaluate:
+    if args.evaluate_liftnet_pth:
+        model.load_checkpoints(ckp_liftnet=args.evaluate_liftnet_pth)
         validate(val_loader, model, criterion, args=args)
         return 0
 
@@ -387,6 +385,27 @@ if __name__ == '__main__':
         help='path to save checkpoint (default: checkpoint)'
     )
     parser.add_argument(
+        '--frozen_seednet_pth',
+        default='',
+        type=str,
+        metavar='PATH',
+        help='You must provide the destination to load the frozen SeedNet checkpoints (default: none)'
+    )
+    parser.add_argument(
+        '--resume_liftnet_pth',
+        default='',
+        type=str,
+        metavar='PATH',
+        help='whether to load LiftNet resume checkpoints pth (default: none)'
+    )
+    parser.add_argument(
+        '--evaluate_liftnet_pth',
+        default='',
+        type=str,
+        metavar='PATH',
+        help='whether to load LiftNet checkpoints pth for evaluation ONLY (default: none)'
+    )
+    parser.add_argument(
         '-sp',
         '--saved_prefix',
         default='ckp_liftnet',
@@ -398,18 +417,6 @@ if __name__ == '__main__':
         '--snapshot',
         default=1, type=int,
         help='save models for every #snapshot epochs (default: 0)'
-    )
-    parser.add_argument(
-        '-r', '--resume',
-        dest='resume',
-        action='store_true',
-        help='whether to load checkpoint (default: none)'
-    )
-    parser.add_argument(
-        '-e', '--evaluate',
-        dest='evaluate',
-        action='store_true',
-        help='evaluate model on validation set'
     )
     parser.add_argument(
         '-d', '--debug',

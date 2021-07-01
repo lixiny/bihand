@@ -106,24 +106,24 @@ def main(args):
         pin_memory=True
     )
 
+
+    if not args.frozen_seednet_pth or not os.path.isfile(args.frozen_seednet_pth):
+        raise ValueError("No frozen_seednet_pth is provided")
+    if not args.frozen_liftnet_pth or not os.path.isfile(args.frozen_liftnet_pth):
+        raise ValueError("No frozen_liftnet_pth is provided")
+
     model.load_checkpoints(
-        ckp_seednet=os.path.join(args.checkpoint, 'ckp_seednet_all.pth.tar'),
-        ckp_liftnet=os.path.join(args.checkpoint, args.fine_tune,
-                                 'ckp_liftnet_{}.pth.tar'.format(args.fine_tune)),
-        ckp_siknet=os.path.join(args.checkpoint, 'ckp_siknet_synth.pth.tar')
+        ckp_seednet=os.path.join(args.frozen_seednet_pth),
+        ckp_liftnet=os.path.join(args.frozen_liftnet_pth)
     )
     for params in model.upstream.parameters():
         params.requires_grad = False
 
-    if args.evaluate or args.resume:
-        model.load_checkpoints(
-            ckp_siknet=os.path.join(
-                args.checkpoint, args.fine_tune,
-                'ckp_siknet_{}.pth.tar'.format(args.fine_tune)
-            )
-        )
+    if args.resume_siknet_pth:
+        model.load_checkpoints(ckp_siknet=args.resume_siknet_pth)
 
-    if args.evaluate:
+    if args.evaluate_siknet_pth:
+        model.load_checkpoints(ckp_siknet=args.evaluate_siknet_pth)
         validate(val_loader, model, criterion, args=args)
         cprint('Eval All Done', 'yellow', attrs=['bold'])
         return 0
@@ -352,6 +352,34 @@ if __name__ == '__main__':
         help='path to save checkpoint (default: checkpoint)'
     )
     parser.add_argument(
+        '--frozen_seednet_pth',
+        default='',
+        type=str,
+        metavar='PATH',
+        help='You must provide the destination to load the frozen SeedNet checkpoints (default: none)'
+    )
+    parser.add_argument(
+        '--frozen_liftnet_pth',
+        default='',
+        type=str,
+        metavar='PATH',
+        help='You must provide the destination to load the frozen LiftNet checkpoints (default: none)'
+    )
+    parser.add_argument(
+        '--resume_siknet_pth',
+        default='',
+        type=str,
+        metavar='PATH',
+        help='whether to load SIKNet resume checkpoints pth (default: none)'
+    )
+    parser.add_argument(
+        '--evaluate_siknet_pth',
+        default='',
+        type=str,
+        metavar='PATH',
+        help='whether to load SIKNet checkpoints pth for evaluation ONLY (default: none)'
+    )
+    parser.add_argument(
         '-sp',
         '--saved_prefix',
         default='ckp_siknet',
@@ -370,21 +398,6 @@ if __name__ == '__main__':
         default=1, type=int,
         help='save models for every #snapshot epochs (default: 1)'
     )
-
-    parser.add_argument(
-        '-e', '--evaluate',
-        dest='evaluate',
-        action='store_true',
-        help='evaluate model on validation set'
-    )
-
-    parser.add_argument(
-        '-r', '--resume',
-        dest='resume',
-        action='store_true',
-        help='resume model on validation set'
-    )
-
     # Training Parameters
     parser.add_argument(
         '-j', '--workers',

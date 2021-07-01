@@ -256,7 +256,7 @@ class RHDDataset(torch.utils.data.Dataset):
 
     def _apply_mask(self, dep, mask, side):
         ''' follow the label rules in RHD datasets '''
-        if side is 'l':
+        if side == 'l':
             valid_mask_id = [i for i in range(2, 18)]
         else:
             valid_mask_id = [i for i in range(18, 34)]

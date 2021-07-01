@@ -2,6 +2,8 @@ __pycache__/
 jup_scripts/
 .vscode/
 checkpoints/
+released_checkpoints
+released_checkpoints/
 data/
 test/
 .idea/

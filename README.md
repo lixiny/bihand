@@ -82,14 +82,14 @@ manopth/
     ...
 ```
 ### BiHand models
-- Download BiHand weights `checkpoints.tar.gz` from [Google Drive](https://drive.google.com/file/d/1evdNbFBRfDzVykNJFrEnPyicX9-jTa7J/view?usp=sharing) | [Baidu Pan](https://pan.baidu.com/s/1gyYcCTXjiGRtJ6WeLNtcXQ)(`w7pq`)
-- unzip and copy the `checkpoints` folder into current directory
+- Download BiHand weights `checkpoints.tar.gz` from [Google Drive](https://drive.google.com/file/d/1evdNbFBRfDzVykNJFrEnPyicX9-jTa7J/view?usp=sharing) | [Baidu Pan](https://pan.baidu.com/s/1gyYcCTXjiGRtJ6WeLNtcXQ)(`w7pq`), unzip it.
+- Put the files in `checkpoints` folder into current `released_checkpoints` dirctory (`ln -s `  or  `mkdir`)
 
-Now your `BiHand-test` folder should look like this:
+Now your `bihand` folder should look like this:
 ```
 BiHand-test/
     bihand/
-    checkpoints/
+    released_checkpoints/
         ├── ckp_seednet_all.pth.tar
         ├── ckp_siknet_synth.pth.tar
         ├── rhd/
@@ -112,12 +112,12 @@ export PYTHONPATH=/path/to/bihand:$PYTHONPATH
 - to test on RHD dataset:
 ```
 python run.py \
-    --batch_size 8 --fine_tune rhd --checkpoint checkpoints --data_root data
+    --batch_size 8 --fine_tune rhd --checkpoint released_checkpoints --data_root data
 ```
 - to test on STB dataset:
 ```
 python run.py \
-    --batch_size 8 --fine_tune stb --checkpoint checkpoints --data_root data
+    --batch_size 8 --fine_tune stb --checkpoint released_checkpoints  --data_root data
 ```
 - add `--vis` to visualize:
 
@@ -125,27 +125,41 @@ python run.py \
 
 
 ## Training
-By adopting the multi-stage training scheme, we ﬁrst train SeedNet for 100 epochs:
+By adopting the multi-stage training scheme, we first train SeedNet for 100 epochs:
 ```
-python training/train_seednet.py \
-    --net_modules seed --datasets stb rhd --ups_loss
+python training/train_seednet.py --net_modules seed --datasets stb rhd --ups_loss
 ```
 and then exploit its outputs to train LiftNet for another 100 epochs:
 ```
 python training/train_liftnet.py \
-    --net_modules seed lift --datasets stb rhd --ups_loss
+    --net_modules seed lift \
+    --datasets stb rhd \
+    --resume_seednet_pth ${path_to_your_SeedNet_checkpoints (xxx.pth.tar)} \
+    --ups_loss \
+    --train_batch 16
 ```
 For SIKNet:
-* We firstly train SIKNet on SIK-1M dataset for 100 epochs.
+* We firstly train SIKNet on SIK-1M dataset for <=100 epochs.
 
     Download SIK-1M Dataset at [Google Drive](https://drive.google.com/file/d/1EhOEbr_CcmUVzE3AHssGgAm3ZVhe8IVO/view?usp=sharing) or [Baidu Pan](https://pan.baidu.com/s/1WCjo4Q_pLnyxpRhYfowIQQ) (`dc4g`) and extract SIK-1M.zip to `data/SIK-1M`, then run:
 ```
 python training/train_siknet_sik1m.py
 ```
-* Then we fine-tune the SIKNet on the predicted 3D joints from the LiftNet.
+* Then we fine-tune the SIKNet on the predicted 3D joints from the LiftNet. During train_siknet, the params of SeedNet and LiftNet are freezed.
 ```
-# During train_siknet, the params of SeedNet and LiftNet are freezed.
-python training/train_siknet.py --fine_tune stb ##(or rhd)
+python training/train_siknet.py \
+    --fine_tune ${stb, rhd} \
+    --frozen_seednet_pth ${path_to_your_SeedNet_checkpoints} \
+    --frozen_liftnet_pth ${path_to_your_LiftNet_checkpoints} \
+    --resume_siknet_pth ${path_to_your_SIKNet_SIK-1M_checkpoints}
+
+# e.g.
+python training/train_siknet.py \
+    --fine_tune rhd \
+    --frozen_seednet_pth released_checkpoints/ckp_seednet_all.pth.tar \
+    --frozen_liftnet_pth released_checkpoints/rhd/ckp_liftnet_rhd.pth.tar \
+    --resume_siknet_pth released_checkpoints/ckp_siknet_synth.pth.tar
+
 ```
 
 ## Limitation
@@ -153,7 +167,7 @@ python training/train_siknet.py --fine_tune stb ##(or rhd)
 Currently the released version of bihand requires camera intrinsics, root depth and bone length as inputs, thus cannot be applied in the wild.
 
 
-## Citation  
+## Citation
 If you find this work helpful, please consider citing us:
 ```
 @inproceedings{yang2020bihand,
@@ -178,4 +192,4 @@ If you find this work helpful, please consider citing us:
 
 - Code of the original Hourglass Network `bihand/models/hourglass.py` was adapted from [pytorch-pose](https://github.com/bearpaw/pytorch-pose).
 
-- Thanks [Yuxiao Zhou](https://github.com/CalciferZh) for helpful discussions and suggestions when solving IK problem. 
+- Thanks [Yuxiao Zhou](https://github.com/CalciferZh) for helpful discussions and suggestions when solving IK problem.

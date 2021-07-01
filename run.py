@@ -218,10 +218,10 @@ if __name__ == '__main__':
     parser.add_argument(
         '-ckp',
         '--checkpoint',
-        default='checkpoints',
+        default='released_checkpoints',
         type=str,
         metavar='PATH',
-        help='path to save checkpoint (default: checkpoint)'
+        help='path to load checkpoint (default: released_checkpoints)'
     )
     parser.add_argument(
         '-j', '--workers',
@@ -269,12 +269,5 @@ if __name__ == '__main__':
         type=int,
         metavar='N',
         help='Number of heatmaps calsses (hand joints) to predict in the hourglass'
-    )
-    parser.add_argument(
-        "--net_modules",
-        nargs="+",
-        default=['seed', 'lift', 'sik'],
-        type=str,
-        help="sub modules contained in model"
     )
     main(parser.parse_args())

@@ -88,15 +88,10 @@ def main(args):
         pin_memory=True
     )
 
-    if args.evaluate or args.resume:
-        misc.load_checkpoint(
-            model, os.path.join(args.checkpoint, 'ckp_siknet_synth.pth.tar')
-        )
-        if args.evaluate:
-            for params in model.invk_layers.parameters():
-                params.requires_grad = False
-
-    if args.evaluate:
+    if args.evaluate_siknet_synth_pth:
+        misc.load_checkpoint(model, args.evaluate_siknet_synth_pth)
+        for params in model.invk_layers.parameters():
+            params.requires_grad = False
         validate(val_loader, model, criterion, args=args)
         cprint('Eval All Done', 'yellow', attrs=['bold'])
         return 0
@@ -131,7 +126,8 @@ def main(args):
             snapshot=args.snapshot,
             is_best=False
         )
-        validate(val_loader, model, criterion, args)
+        if epoch and epoch % 10 == 0:
+            validate(val_loader, model, criterion, args)
         scheduler.step()
     cprint('All Done', 'yellow', attrs=['bold'])
     return 0  # end of main
@@ -207,8 +203,6 @@ def train(train_loader, model, criterion, optimizer, args):
     am_quat_norm = AverageMeter()
     am_quat_l2 = AverageMeter()
     am_quat_cos = AverageMeter()
-    am_joint = AverageMeter()
-    am_kin_len = AverageMeter()
 
     last = time.time()
     # switch to trian
@@ -242,8 +236,6 @@ def train(train_loader, model, criterion, optimizer, args):
             'b: {bt:.2f}s | '
             't: {total:}s | '
             'eta:{eta:}s | '
-            # 'lJ: {lossJ:.5f} | '
-            # 'lK: {lossK:.5f} | '
             'lN: {lossN:.5f} | '
             'lL2: {lossL2:.5f} | '
             'lC: {lossC:.3f} |'
@@ -254,8 +246,6 @@ def train(train_loader, model, criterion, optimizer, args):
             bt=batch_time.avg,
             total=bar.elapsed_td,
             eta=bar.eta_td,
-            lossJ=am_joint.avg,
-            lossK=am_kin_len.avg,
             lossN=am_quat_norm.avg,
             lossL2=am_quat_l2.avg,
             lossC=am_quat_cos.avg,
@@ -305,6 +295,13 @@ if __name__ == '__main__':
         metavar='PATH',
         help='path to save checkpoint (default: checkpoint)'
     )
+    parser.add_argument(
+        '--evaluate_siknet_synth_pth',
+        default='',
+        type=str,
+        metavar='PATH',
+        help='whether to load checkpoints pth for evaluation on SIK1M Synthetic testset ONLY (default: none)'
+    )
 
     parser.add_argument(
         '-dr',
@@ -327,21 +324,6 @@ if __name__ == '__main__':
         default=1, type=int,
         help='save models for every #snapshot epochs (default: 1)'
     )
-
-    parser.add_argument(
-        '-e', '--evaluate',
-        dest='evaluate',
-        action='store_true',
-        help='evaluate model on validation set'
-    )
-
-    parser.add_argument(
-        '-r', '--resume',
-        dest='resume',
-        action='store_true',
-        help='resume model on validation set'
-    )
-
     # Training Parameters
     parser.add_argument(
         '-j', '--workers',
@@ -352,7 +334,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--epochs',
-        default=150,
+        default=100,
         type=int,
         metavar='N',
         help='number of total epochs to run'

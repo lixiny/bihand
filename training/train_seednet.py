@@ -98,19 +98,15 @@ def main(args):
     )
     print("Total test dataset size: {}".format(len(val_dataset)))
     print("\nLOAD CHECKPOINT")
-    if args.resume or args.evaluate:
-        model.load_checkpoints(
-            ckp_seednet=os.path.join(
-                args.checkpoint,
-                'ckp_seednet_all.pth.tar'
-            )
-        )
+    if args.resume_seednet_pth:
+        model.load_checkpoints(ckp_seednet=args.resume_seednet_pth)
     else:
         for m in model.modules():
             if isinstance(m, torch.nn.Conv2d):
                 torch.nn.init.kaiming_normal_(m.weight)
 
-    if args.evaluate:
+    if args.evaluate_seednet_pth:
+        model.load_checkpoints(ckp_seednet=args.evaluate_seednet_pth)
         validate(val_loader, model, criterion, args=args)
         return 0
 
@@ -356,6 +352,20 @@ if __name__ == '__main__':
         help='path to save checkpoint (default: checkpoint)'
     )
     parser.add_argument(
+        '--resume_seednet_pth',
+        default='',
+        type=str,
+        metavar='PATH',
+        help='whether to load resume checkpoints pth (default: none)'
+    )
+    parser.add_argument(
+        '--evaluate_seednet_pth',
+        default='',
+        type=str,
+        metavar='PATH',
+        help='whether to load checkpoints pth for evaluation ONLY (default: none)'
+    )
+    parser.add_argument(
         '-sp',
         '--saved_prefix',
         default='ckp_seednet_all',
@@ -367,18 +377,6 @@ if __name__ == '__main__':
         '--snapshot',
         default=5, type=int,
         help='save models for every #snapshot epochs (default: 0)'
-    )
-    parser.add_argument(
-        '-r', '--resume',
-        dest='resume',
-        action='store_true',
-        help='whether to load checkpoint (default: none)'
-    )
-    parser.add_argument(
-        '-e', '--evaluate',
-        dest='evaluate',
-        action='store_true',
-        help='evaluate model on validation set'
     )
     parser.add_argument(
         '-d', '--debug',
@@ -455,7 +453,7 @@ if __name__ == '__main__':
         '--ups_loss',
         dest='ups_loss',
         action='store_true',
-        help='Calculate upstream loss'
+        help='Calculate upstream loss',
         default=True
     )
 

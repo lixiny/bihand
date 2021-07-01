@@ -7,6 +7,7 @@ import scipy.io
 import matplotlib.pyplot as plt
 from termcolor import colored, cprint
 import bihand.utils.func as func
+from collections import OrderedDict
 
 
 def print_args(args):
@@ -52,44 +53,24 @@ def save_checkpoint(
         )
 
 
-def load_checkpoint(model, checkpoint):
-    name = checkpoint
-    checkpoint = torch.load(name)
-    pretrain_dict = clean_state_dict(checkpoint['state_dict'])
-    model_state = model.state_dict()
-    state = {}
-    for k, v in pretrain_dict.items():
-        if k in model_state:
-            state[k] = v
-        else:
-            print(k, ' is NOT in current model')
-    model_state.update(state)
-    model.load_state_dict(model_state)
-    print(colored('loaded {}'.format(name), 'cyan'))
-
-
-def clean_state_dict(state_dict):
-    """save a cleaned version of model without dict and DataParallel
-
-    Arguments:
-        state_dict {collections.OrderedDict} -- [description]
-
-    Returns:
-        clean_model {collections.OrderedDict} -- [description]
-    """
-
-    clean_model = state_dict
-    # create new OrderedDict that does not contain `module.`
-    from collections import OrderedDict
-    clean_model = OrderedDict()
-    if any(key.startswith('module') for key in state_dict):
-        for k, v in state_dict.items():
-            name = k[7:]  # remove `module.`
-            clean_model[name] = v
+def load_checkpoint(model:torch.nn.Module, checkpoint_pth):
+    checkpoint = torch.load(checkpoint_pth)
+    if isinstance(checkpoint, OrderedDict):
+        state_dict = checkpoint
+    elif isinstance(checkpoint, dict) and "state_dict" in checkpoint:
+        state_dict_old = checkpoint["state_dict"]
+        state_dict = OrderedDict()
+        # delete 'module.' because it is saved from DataParallel module
+        for key in state_dict_old.keys():
+            if key.startswith("module."):
+                state_dict[key[7:]] = state_dict_old[key]  # delete "module." (in nn.parallel)
+            else:
+                state_dict[key] = state_dict_old[key]
     else:
-        return state_dict
+         raise RuntimeError(f"=> No state_dict found in checkpoint file {checkpoint_pth}")
 
-    return clean_model
+    model.load_state_dict(state_dict, strict=True)
+    print(colored('loaded {}'.format(checkpoint_pth), 'cyan'))
 
 
 def save_pred(preds, checkpoint='checkpoint', filename='preds_valid.mat'):

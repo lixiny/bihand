@@ -47,11 +47,11 @@ class NetBiHand(nn.Module):
         self, ckp_seednet=None, ckp_liftnet=None, ckp_siknet=None,
     ):
         # NOTE: File exist check! (refer to issue #1)
-        if not os.path.isfile(ckp_seednet):
+        if ckp_seednet and not os.path.isfile(ckp_seednet):
             cprint(f"{ckp_seednet} is not exist", "red")
-        if not os.path.isfile(ckp_liftnet):
+        if ckp_liftnet and not os.path.isfile(ckp_liftnet):
             cprint(f"{ckp_liftnet} is not exist", "red")
-        if not os.path.isfile(ckp_siknet):
+        if ckp_siknet and not os.path.isfile(ckp_siknet):
             cprint(f"{ckp_siknet} is not exist", "red")
 
         if ckp_seednet and os.path.isfile(ckp_seednet) and "seed" in self.net_modules:
